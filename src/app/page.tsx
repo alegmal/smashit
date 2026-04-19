@@ -98,11 +98,10 @@ export default function SmashItPage() {
     useEffect(() => { autoLangRef.current = autoLang; }, [autoLang]);
 
     const { particlesRef, rafRef, impactsRef, startPhysicsLoop } = usePhysicsLoop(setFrame);
-    const onShakeRef = useRef<(() => void) | null>(null);
     const discoverEggRef = useRef<((name: string) => void) | null>(null);
     const { orbitLettersRef, orbitPosRef, masterAngleRef, checkAndToggleChase, resetChase } = useChaseMode({
         setFrame, particlesRef, impactsRef, startPhysicsLoop,
-        onShake: useCallback(() => onShakeRef.current?.(), []),
+        onShake: useCallback(() => discoverEggRef.current?.('SHAKE'), []),
     });
 
     const handleBonusKeys = useCallback((n: number) => {
@@ -143,7 +142,6 @@ export default function SmashItPage() {
     } = useEasterEggs({ clearIdleState, onAddKeys: handleBonusKeys });
     // Wire action discoveries now that discoverEgg is available
     discoverEggRef.current = discoverEgg;
-    onShakeRef.current = () => discoverEgg('SHAKE');
     const { critters, critterIntervalRef, startCritters, stopCritters } = useCritters();
     const { linkedinQuote, quoteTimerRef, startQuotes, stopQuotes } = useLinkedinQuotes();
     const { milestoneMessage, recordStroke, resetMilestones } = useMilestones({
@@ -454,6 +452,11 @@ export default function SmashItPage() {
                         style={{ color: discoveredEggs.size === TOTAL_EGGS ? '#2ed573' : 'rgba(255,255,255,0.25)' }}
                     >
                         🔍 {discoveredEggs.size}/{TOTAL_EGGS} MAGIC THINGS DISCOVERED
+                        {discoveredEggs.size === TOTAL_EGGS && (
+                            <span className="ml-3 text-base font-normal italic" style={{ color: '#2ed573', opacity: 0.85 }}>
+                                You&apos;ve seen it all! Take a day off...
+                            </span>
+                        )}
                         {discoveredEggs.size < TOTAL_EGGS && (
                             <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-2 w-52 rounded-lg z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
                                 style={{ background: 'rgba(0,0,0,0.92)', border: '1px solid rgba(255,255,255,0.1)' }}>
