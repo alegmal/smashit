@@ -4,21 +4,16 @@ export const ALL_EGG_NAMES = [
     'ALEG', 'AI', 'BABY', 'BORING', 'BUG',
     'CAT', 'COFFEE', 'DEPLOY', 'DEVOPS', 'DINO',
     'DISCO', 'DOG', 'DONE', 'FAIL', 'FROG',
-    'DUCK', 'GONG', 'HIRE', 'LOL', 'MAGIC', 'MATRIX',
+    'DUCK', 'HIRE', 'LOL', 'MAGIC', 'MATRIX',
     'MEETING', 'OMG', 'PIZZA', 'QWERTY', 'RAINBOW',
-    'ROCKET', 'SHARK', 'SMASH', 'SPACE', 'TRAIN',
+    'ROCKET', 'SHARK', 'SPACE', 'TRAIN',
     'UNICORN', 'WTF', 'YES', 'YOLO', 'POOP', 'LINKEDIN',
-    // Action-based discoveries
-    'SHAKE', 'CORNER', 'LANGUAGE',
 ];
 
 // Human-readable labels for action-based and secret discoveries
 export const EGG_DISPLAY_LABELS: Record<string, string> = {
     ALEG: "🥚 the creator's name...",
     DISCO: 'DISCO ⚠️ (epileptic seizure)',
-    SHAKE: '💥 hit with letters around your cursor',
-    CORNER: "📺 don't type anything and let it hit a corner",
-    LANGUAGE: '🌍 change to a different language',
 };
 
 export const NOTES = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00];

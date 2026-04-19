@@ -11,6 +11,27 @@ const LANG_COLORS: Record<string, string> = {
     english: '#ff4757',
 };
 
+const LANG_FLAGS: Record<string, string> = {
+    japanese: '🇯🇵',
+    russian: '🇷🇺',
+    hindi: '🇮🇳',
+    greek: '🇬🇷',
+    hebrew: '🇮🇱',
+    english: '🇬🇧',
+};
+
+const LANG_ORDER = ['english', 'japanese', 'russian', 'hindi', 'greek', 'hebrew'];
+
+const EGG_BUTTONS = [
+    { name: 'DINO', emoji: '🦕' },
+    { name: 'SHARK', emoji: '🦈' },
+    { name: 'UNICORN', emoji: '🦄' },
+    { name: 'POOP', emoji: '💩' },
+    { name: 'BABY', emoji: '👶' },
+    { name: 'DOG', emoji: '🐶' },
+    { name: 'CAT', emoji: '🐱' },
+];
+
 interface Props {
     totalKeys: number;
     activeLang: string | null;
@@ -18,9 +39,11 @@ interface Props {
     autoLang: boolean;
     autoLangCountdown: number;
     onToggleAutoLang: () => void;
+    onSelectLang: (lang: string) => void;
+    onFireEgg: (name: string) => void;
 }
 
-export function WpmCounter({ totalKeys, activeLang, onCycleLang, autoLang, autoLangCountdown, onToggleAutoLang }: Props) {
+export function WpmCounter({ totalKeys, activeLang, onCycleLang, autoLang, autoLangCountdown, onToggleAutoLang, onSelectLang, onFireEgg }: Props) {
     const labelColor = activeLang ? LANG_COLORS[activeLang] ?? '#ffffff' : 'rgba(255,255,255,0.3)';
     const labelText = activeLang ? activeLang : 'letters';
 
@@ -34,19 +57,11 @@ export function WpmCounter({ totalKeys, activeLang, onCycleLang, autoLang, autoL
         prevLangRef.current = activeLang;
     }, [activeLang]);
 
-    // Hide hints once user has interacted
     const [shuffleHinted, setShuffleHinted] = useState(true);
-    const [langHinted, setLangHinted] = useState(true);
+    const [flagHinted, setFlagHinted] = useState(true);
 
-    const handleToggleAutoLang = () => {
-        setShuffleHinted(false);
-        onToggleAutoLang();
-    };
-
-    const handleCycleLang = () => {
-        setLangHinted(false);
-        onCycleLang();
-    };
+    const handleToggleAutoLang = () => { setShuffleHinted(false); onToggleAutoLang(); };
+    const handleSelectLang = (lang: string) => { setFlagHinted(false); onSelectLang(lang); };
 
     return (
         <div className="absolute bottom-80 left-12 flex items-end gap-3 select-none">
@@ -94,32 +109,47 @@ export function WpmCounter({ totalKeys, activeLang, onCycleLang, autoLang, autoL
                             {autoLang ? autoLangCountdown : ''}
                         </span>
                     </button>
-                    {/* Arrow hint for shuffle button */}
                     {shuffleHinted && (
-                        <span
-                            style={{
-                                position: 'absolute',
-                                left: '110%',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                fontSize: '1.1rem',
-                                opacity: 0.55,
-                                animation: 'hint-nudge-h 1.2s ease-in-out infinite',
-                                pointerEvents: 'none',
-                                whiteSpace: 'nowrap',
-                                color: 'rgba(255,255,255,0.7)',
-                            }}
-                        >
+                        <span style={{ position: 'absolute', left: '110%', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', opacity: 0.55, animation: 'hint-nudge-h 1.2s ease-in-out infinite', pointerEvents: 'none', whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.7)' }}>
                             ← click for random languages
                         </span>
                     )}
                 </div>
 
+                {/* Language flag buttons */}
+                <div className="relative flex items-center gap-1">
+                    {LANG_ORDER.map(lang => (
+                        <button
+                            key={lang}
+                            onClick={() => handleSelectLang(lang)}
+                            title={lang}
+                            style={{
+                                background: 'none',
+                                border: activeLang === lang ? '2px solid ' + (LANG_COLORS[lang] ?? '#fff') : '2px solid transparent',
+                                borderRadius: '4px',
+                                padding: '1px 2px',
+                                cursor: 'pointer',
+                                fontSize: '1.6rem',
+                                lineHeight: 1,
+                                opacity: activeLang === lang ? 1 : 0.45,
+                                transition: 'opacity 0.15s, border-color 0.15s',
+                            }}
+                        >
+                            {LANG_FLAGS[lang]}
+                        </button>
+                    ))}
+                    {flagHinted && (
+                        <span style={{ position: 'absolute', left: '105%', top: '50%', transform: 'translateY(-50%)', fontSize: '1.1rem', opacity: 0.55, animation: 'hint-nudge-h 1.2s ease-in-out infinite', animationDelay: '0.4s', pointerEvents: 'none', whiteSpace: 'nowrap', color: 'rgba(255,255,255,0.7)' }}>
+                            ← click to change language
+                        </span>
+                    )}
+                </div>
+
                 {/* keys/min label row */}
-                <div className="relative flex items-center">
+                <div className="flex items-center">
                     <span
                         key={animKey}
-                        className="font-bold tracking-widest uppercase cursor-pointer"
+                        className="font-bold tracking-widest uppercase"
                         style={{
                             fontSize: '2rem',
                             color: labelColor,
@@ -128,31 +158,35 @@ export function WpmCounter({ totalKeys, activeLang, onCycleLang, autoLang, autoL
                             animation: animKey > 0 ? 'lang-pop 2s cubic-bezier(0.22,1,0.36,1) forwards' : undefined,
                             '--lang-color': labelColor,
                         } as React.CSSProperties}
-                        onClick={handleCycleLang}
-                        title="Click to change language"
                     >
                         {labelText}
                     </span>
-                    {/* Arrow hint for keys/min */}
-                    {langHinted && (
-                        <span
+                </div>
+
+                {/* Egg trigger buttons */}
+                <div className="flex items-center gap-1">
+                    {EGG_BUTTONS.map(({ name, emoji }) => (
+                        <button
+                            key={name}
+                            onClick={() => onFireEgg(name)}
+                            title={name.toLowerCase()}
                             style={{
-                                position: 'absolute',
-                                left: '105%',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                fontSize: '1.1rem',
+                                background: 'none',
+                                border: '2px solid transparent',
+                                borderRadius: '4px',
+                                padding: '1px 2px',
+                                cursor: 'pointer',
+                                fontSize: '1.6rem',
+                                lineHeight: 1,
                                 opacity: 0.55,
-                                animation: 'hint-nudge-h 1.2s ease-in-out infinite',
-                                animationDelay: '0.4s',
-                                pointerEvents: 'none',
-                                whiteSpace: 'nowrap',
-                                color: 'rgba(255,255,255,0.7)',
+                                transition: 'opacity 0.15s',
                             }}
+                            onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                            onMouseLeave={e => (e.currentTarget.style.opacity = '0.55')}
                         >
-                            ← click to change language
-                        </span>
-                    )}
+                            {emoji}
+                        </button>
+                    ))}
                 </div>
             </div>
         </div>
