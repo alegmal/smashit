@@ -5,20 +5,18 @@ import type { BorderLetter, FloatingKey, LastKeyState } from "./types";
 import { playAirHorn, playAirHornSoft, playBlip, playFart, playLetterPop, playSillySound } from "./lib/audio";
 import { getKeyLabel, LANG_NAMES, randomColor, slotToPosition, transliterateLabel } from "./lib/utils";
 import { downloadShareCard } from "./lib/shareCard";
-import { MARGIN, ALL_EGG_NAMES, EGG_DISPLAY_LABELS } from "./constants";
+import { MARGIN, ALL_EGG_NAMES, EGG_DISPLAY_LABELS, ORBIT_HIT_RADIUS } from "./constants";
 import { usePhysicsLoop } from "./hooks/usePhysicsLoop";
 import { ImpactCanvas } from "./components/ImpactCanvas";
 import { useIdleAnimation } from "./hooks/useIdleAnimation";
 import { useEasterEggs, TOTAL_EGGS } from "./hooks/useEasterEggs";
 import { useCritters } from "./hooks/useCritters";
-import { useLinkedinQuotes } from "./hooks/useLinkedinQuotes";
 import { useMilestones } from "./hooks/useMilestones";
 import { useChaseMode } from "./hooks/useChaseMode";
 import { AiFloodOverlay } from "./components/AiFloodOverlay";
 import { AlegOverlay } from "./components/AlegOverlay";
 import { BabyRain } from "./components/BabyRain";
 import { DevOpsFloodOverlay } from "./components/DevOpsFloodOverlay";
-import { GongOverlay } from "./components/GongOverlay";
 import { LolOverlay } from "./components/LolOverlay";
 import { YesDoneOverlay } from "./components/YesDoneOverlay";
 import { HireOverlay } from "./components/HireOverlay";
@@ -45,7 +43,6 @@ import { Critters } from "./components/Critters";
 import { Floaters } from "./components/Floaters";
 import { IdleLetter } from "./components/IdleLetter";
 import { LandingPage } from "./components/LandingPage";
-import { LinkedinQuote } from "./components/LinkedinQuote";
 import { Particles } from "./components/Particles";
 import { WpmCounter } from "./components/WpmCounter";
 import { KeyCounter } from "./components/KeyCounter";
@@ -101,7 +98,7 @@ export default function SmashItPage() {
     const discoverEggRef = useRef<((name: string) => void) | null>(null);
     const { orbitLettersRef, orbitPosRef, masterAngleRef, checkAndToggleChase, resetChase } = useChaseMode({
         setFrame, particlesRef, impactsRef, startPhysicsLoop,
-        onShake: useCallback(() => discoverEggRef.current?.('SHAKE'), []),
+        onShake: useCallback(() => {}, []),
     });
 
     const handleBonusKeys = useCallback((n: number) => {
@@ -117,7 +114,6 @@ export default function SmashItPage() {
             onCornerHit: useCallback((x: number, y: number, color: string) => {
                 setCornerHintSeen(true);
                 handleBonusKeys(1000);
-                discoverEggRef.current?.('CORNER');
                 playAirHorn();
                 const walls = ['left', 'right', 'top', 'bottom'] as const;
                 for (const wall of walls) {
@@ -138,22 +134,24 @@ export default function SmashItPage() {
 
     const {
         activeEgg,
-        discoveredEggs, discoverEgg, handleEggInput, resetEggs,
+        discoveredEggs, discoverEgg, handleEggInput, resetEggs, fireEgg,
     } = useEasterEggs({ clearIdleState, onAddKeys: handleBonusKeys });
     // Wire action discoveries now that discoverEgg is available
     discoverEggRef.current = discoverEgg;
     const { critters, critterIntervalRef, startCritters, stopCritters } = useCritters();
-    const { linkedinQuote, quoteTimerRef, startQuotes, stopQuotes } = useLinkedinQuotes();
     const { milestoneMessage, recordStroke, resetMilestones } = useMilestones({
         onAddKeys: handleBonusKeys,
     });
 
     const onCycleLang = useCallback(() => {
-        discoverEggRef.current?.('LANGUAGE');
         setActiveLang(prev => {
             const others = LANG_NAMES.filter(l => l !== prev);
             return others[Math.floor(Math.random() * others.length)] ?? null;
         });
+    }, []);
+
+    const onSelectLang = useCallback((lang: string) => {
+        setActiveLang(lang);
     }, []);
 
     const stopAutoLang = useCallback(() => {
@@ -205,7 +203,6 @@ export default function SmashItPage() {
         if (idleRafRef.current !== null) { cancelAnimationFrame(idleRafRef.current); idleRafRef.current = null; }
         idleFlyRef.current = null;
         stopCritters();
-        stopQuotes();
         timerMapRef.current.forEach(t => clearTimeout(t));
         timerMapRef.current.clear();
         particlesRef.current = [];
@@ -234,7 +231,7 @@ export default function SmashItPage() {
             (navigator as any).keyboard?.unlock();
         } catch { /* not supported */ }
         if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
-    }, [rafRef, idleFallTimerRef, idleRafRef, idleFlyRef, particlesRef, stopCritters, stopQuotes, stopAutoLang, resetEggs, resetMilestones, resetChase]);
+    }, [rafRef, idleFallTimerRef, idleRafRef, idleFlyRef, particlesRef, stopCritters, stopAutoLang, resetEggs, resetMilestones, resetChase]);
 
     const startCapture = useCallback(async () => {
         try { await document.documentElement.requestFullscreen(); } catch { /* fullscreen denied */ }
@@ -295,6 +292,18 @@ export default function SmashItPage() {
             setBgColor(color + "22");
 
             checkAndToggleChase(rawLabel, color);
+
+            // Trigger impact sparks when the center key letter hits orbit letters
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+            for (const op of orbitPosRef.current) {
+                const dx = cx - op.x;
+                const dy = cy - op.y;
+                if (dx * dx + dy * dy < ORBIT_HIT_RADIUS * ORBIT_HIT_RADIUS) {
+                    const wall = dx > 0 ? 'right' : 'left';
+                    impactsRef.current.push({ x: op.x, y: op.y, color, wall });
+                }
+            }
 
             clearIdleState();
             idleFallTimerRef.current = setTimeout(() => {
@@ -384,11 +393,10 @@ export default function SmashItPage() {
         };
 
         startCritters();
-        startQuotes();
         setIsCapturing(true);
     }, [stopCapture, startPhysicsLoop, clearIdleState, startIdleFlyLoop,
         handleEggInput, recordStroke, checkAndToggleChase,
-        idleFallTimerRef, particlesRef, startCritters, startQuotes]);
+        idleFallTimerRef, particlesRef, startCritters]);
 
     // Clean up on unmount
     useEffect(() => {
@@ -399,11 +407,10 @@ export default function SmashItPage() {
             if (idleRafRef.current !== null) cancelAnimationFrame(idleRafRef.current);
             if (idleFallTimerRef.current) clearTimeout(idleFallTimerRef.current);
             if (critterIntervalRef.current) clearTimeout(critterIntervalRef.current);
-            if (quoteTimerRef.current) clearTimeout(quoteTimerRef.current);
             if (autoLangIntervalRef.current) clearInterval(autoLangIntervalRef.current);
             timerMapRef.current.forEach(t => clearTimeout(t));
         };
-    }, [rafRef, idleRafRef, idleFallTimerRef, critterIntervalRef, quoteTimerRef]);
+    }, [rafRef, idleRafRef, idleFallTimerRef, critterIntervalRef]);
 
     // Remove floaters after animation completes (1.4s)
     useEffect(() => {
@@ -452,11 +459,6 @@ export default function SmashItPage() {
                         style={{ color: discoveredEggs.size === TOTAL_EGGS ? '#2ed573' : 'rgba(255,255,255,0.25)' }}
                     >
                         🔍 {discoveredEggs.size}/{TOTAL_EGGS} MAGIC THINGS DISCOVERED
-                        {discoveredEggs.size === TOTAL_EGGS && (
-                            <span className="ml-3 text-base font-normal italic" style={{ color: '#2ed573', opacity: 0.85 }}>
-                                You&apos;ve seen it all! Take a day off...
-                            </span>
-                        )}
                         {discoveredEggs.size < TOTAL_EGGS && (
                             <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-2 w-52 rounded-lg z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150"
                                 style={{ background: 'rgba(0,0,0,0.92)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -484,7 +486,6 @@ export default function SmashItPage() {
             </div>
 
             <Floaters floaters={floaters} />
-            <LinkedinQuote quote={linkedinQuote} />
             <Critters critters={critters} />
 
             {lastKey && idlePhase === null && (
@@ -554,8 +555,8 @@ export default function SmashItPage() {
                         className="font-black"
                         style={{
                             fontSize: milestoneMessage.milestone >= 200
-                                ? 'clamp(6rem, 15vw, 13.5rem)'
-                                : 'clamp(2.5rem, 6vw, 5.5rem)',
+                                ? 'clamp(4.8rem, 12vw, 10.8rem)'
+                                : 'clamp(2rem, 4.8vw, 4.4rem)',
                             color: milestoneMessage.milestone >= 200 ? '#ffffff' : milestoneMessage.color,
                             textShadow: milestoneMessage.milestone >= 200
                                 ? '-3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 0 80px #fff6'
@@ -657,7 +658,6 @@ export default function SmashItPage() {
             <MagicOverlay visible={activeEgg?.name === 'MAGIC'} />
             <RainbowOverlay visible={activeEgg?.name === 'RAINBOW'} />
             {/* z-88 */}
-            <GongOverlay visible={activeEgg?.name === 'GONG'} />
             <FailOverlay visible={activeEgg?.name === 'FAIL'} />
             <DiscoOverlay visible={activeEgg?.name === 'DISCO'} />
             <WtfOverlay visible={activeEgg?.name === 'WTF'} />
@@ -665,7 +665,7 @@ export default function SmashItPage() {
             <AiFloodOverlay visible={activeEgg?.name === 'AI'} flood={activeEgg?.flood ?? []} />
             {/* z-92 */}
             <YoloOverlay visible={activeEgg?.name === 'YOLO'} />
-            <OmgSmashOverlay msg={activeEgg?.name === 'SMASH' ? '💥 SMASH!' : activeEgg?.name === 'OMG' ? 'OMG!' : null} shake={activeEgg?.name === 'SMASH'} />
+            <OmgSmashOverlay msg={activeEgg?.name === 'OMG' ? 'OMG!' : null} shake={false} />
             {/* z-100 */}
             <AlegOverlay visible={activeEgg?.name === 'ALEG'} />
             {/* boring rain */}
@@ -752,7 +752,7 @@ export default function SmashItPage() {
                     </span>
                 </div>
             )}
-            <WpmCounter totalKeys={Math.floor(totalKeys)} activeLang={activeLang} onCycleLang={onCycleLang} autoLang={autoLang} autoLangCountdown={autoLangCountdown} onToggleAutoLang={onToggleAutoLang} />
+            <WpmCounter totalKeys={Math.floor(totalKeys)} activeLang={activeLang} onCycleLang={onCycleLang} autoLang={autoLang} autoLangCountdown={autoLangCountdown} onToggleAutoLang={onToggleAutoLang} onSelectLang={onSelectLang} onFireEgg={fireEgg} />
             <button
                 className="absolute select-none transition-all duration-150 active:scale-95"
                 style={{

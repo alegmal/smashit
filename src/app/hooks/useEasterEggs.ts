@@ -2,10 +2,10 @@
 
 import { useCallback, useRef, useState } from 'react';
 
-export const TOTAL_EGGS = 40; // 37 typed keywords + SHAKE, CORNER, LANGUAGE actionss
+export const TOTAL_EGGS = 34; // 34 typed keywords
 import { COLORS, YAML_SNIPPETS, MEETING_PHRASES } from '../constants';
 import {
-    playCoin, playFart, playLoudFart, playBlip, playGong, playBabyCry,
+    playCoin, playFart, playLoudFart, playBlip, playBabyCry,
     playAirHorn, playQuack,
     playDeploy, playWhat, playSnore, playSadTrombone, playZoomNotify,
     playRoar, playMeow, playWoof, playMagic, playTrain,
@@ -47,14 +47,12 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
     const aiSeqRef = useRef('');
     const babySeqRef = useRef('');
     const devopsSeqRef = useRef('');
-    const gongSeqRef = useRef('');
     const lolSeqRef = useRef('');
     const yesSeqRef = useRef('');
     const doneSeqRef = useRef('');
     const wtfSeqRef = useRef('');
     const omgSeqRef = useRef('');
     const hireSeqRef = useRef('');
-    const smashSeqRef = useRef('');
     const pizzaSeqRef = useRef('');
     const coffeeSeqRef = useRef('');
     const boringSeqRef = useRef('');
@@ -193,17 +191,6 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
             return true;
         }
 
-        // ── GONG ───────────────────────────────────────────────────────────────
-        gongSeqRef.current = (gongSeqRef.current + ch).slice(-4);
-        if (gongSeqRef.current === 'GONG') {
-            gongSeqRef.current = '';
-            const gen = ++eggGenRef.current;
-            clearIdleState(); playGong();
-            setDiscoveredEggs(prev => new Set(prev).add('GONG'));
-            setActiveEgg({ name: 'GONG' });
-            setTimeout(() => { if (eggGenRef.current === gen) setActiveEgg(null); }, 2000);
-            return true;
-        }
 
         // ── LOL ────────────────────────────────────────────────────────────────
         lolSeqRef.current = (lolSeqRef.current + ch).slice(-3);
@@ -266,17 +253,6 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
             return trigger('HIRE', hireSeqRef, 3000, undefined, () => playAirHorn());
         }
 
-        // ── SMASH ──────────────────────────────────────────────────────────────
-        smashSeqRef.current = (smashSeqRef.current + ch).slice(-5);
-        if (smashSeqRef.current === 'SMASH') {
-            smashSeqRef.current = '';
-            const gen = ++eggGenRef.current;
-            clearIdleState(); playLoudFart(); setTimeout(() => playAirHorn(), 300);
-            setDiscoveredEggs(prev => new Set(prev).add('SMASH'));
-            setActiveEgg({ name: 'SMASH' });
-            setTimeout(() => { if (eggGenRef.current === gen) setActiveEgg(null); }, 1500);
-            return true;
-        }
 
         // ── PIZZA ──────────────────────────────────────────────────────────────
         pizzaSeqRef.current = (pizzaSeqRef.current + ch).slice(-5);
@@ -498,10 +474,10 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
         if (poopShowerFartRef.current) { clearInterval(poopShowerFartRef.current); poopShowerFartRef.current = null; }
         // Reset all seq refs
         eggSequenceRef.current = ''; aiSeqRef.current = ''; babySeqRef.current = '';
-        devopsSeqRef.current = ''; gongSeqRef.current = '';
+        devopsSeqRef.current = '';
         lolSeqRef.current = ''; yesSeqRef.current = ''; doneSeqRef.current = '';
         wtfSeqRef.current = ''; omgSeqRef.current = ''; hireSeqRef.current = '';
-        smashSeqRef.current = ''; pizzaSeqRef.current = ''; coffeeSeqRef.current = '';
+        pizzaSeqRef.current = ''; coffeeSeqRef.current = '';
         boringSeqRef.current = ''; deploySeqRef.current = ''; yoloSeqRef.current = '';
         discoSeqRef.current = ''; failSeqRef.current = ''; bugSeqRef.current = '';
         meetingSeqRef.current = ''; qwertySeqRef.current = ''; matrixSeqRef.current = '';
@@ -512,10 +488,52 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
         poopSeqRef.current = ''; linkedinSeqRef.current = ''; duckSeqRef.current = ''; moreSeqRef.current = '';
     }, []);
 
+    const fireEgg = useCallback((name: string) => {
+        clearIdleState();
+        onAddKeys(100);
+        setDiscoveredEggs(prev => new Set(prev).add(name));
+        if (name === 'POOP') {
+            ++eggGenRef.current;
+            setActiveEgg({ name });
+            if (poopShowerFartRef.current) clearInterval(poopShowerFartRef.current);
+            let fartCount = 0;
+            poopShowerFartRef.current = setInterval(() => {
+                fartCount % 3 === 0 ? playLoudFart() : playFart();
+                fartCount++;
+            }, 380);
+            if (poopShowerTimerRef.current) clearTimeout(poopShowerTimerRef.current);
+            poopShowerTimerRef.current = setTimeout(() => {
+                poopShowerTimerRef.current = null;
+                if (poopShowerFartRef.current) { clearInterval(poopShowerFartRef.current); poopShowerFartRef.current = null; }
+                setActiveEgg(prev => prev?.name === 'POOP' ? null : prev);
+            }, 1500);
+        } else if (name === 'BABY') {
+            const gen = ++eggGenRef.current;
+            playBabyCry();
+            setActiveEgg({ name });
+            setTimeout(() => { if (eggGenRef.current === gen) setActiveEgg(null); }, 4000);
+        } else if (name === 'DINO') {
+            playRoar();
+            trigger(name, dinoSeqRef, 4000);
+        } else if (name === 'SHARK') {
+            playBlip();
+            trigger(name, sharkSeqRef, 4000);
+        } else if (name === 'UNICORN') {
+            playBlip();
+            trigger(name, unicornSeqRef, 4000);
+        } else if (name === 'CAT') {
+            playMeow();
+            trigger(name, catSeqRef, 4000);
+        } else if (name === 'DOG') {
+            playWoof();
+            trigger(name, dogSeqRef, 4000);
+        }
+    }, [clearIdleState, onAddKeys]);
+
     return {
         activeEgg,
         discoveredEggs,
         discoverEgg: (name: string) => setDiscoveredEggs(prev => new Set(prev).add(name)),
-        handleEggInput, resetEggs,
+        handleEggInput, resetEggs, fireEgg,
     };
 }
