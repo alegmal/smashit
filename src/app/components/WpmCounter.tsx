@@ -2,6 +2,21 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+function useThrottledValue(value: number, intervalMs: number): number {
+    const [display, setDisplay] = useState(value);
+    const latestRef = useRef(value);
+    latestRef.current = value;
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            setDisplay(latestRef.current);
+        }, intervalMs);
+        return () => clearInterval(id);
+    }, [intervalMs]);
+
+    return display;
+}
+
 const LANG_COLORS: Record<string, string> = {
     japanese: '#a29bfe',
     russian: '#2ed573',
@@ -49,6 +64,7 @@ interface Props {
 }
 
 export function WpmCounter({ totalKeys, activeLang, autoLang, autoLangCountdown, onToggleAutoLang, onSelectLang, onFireEgg, isMobile = false }: Props) {
+    const displayKeys = useThrottledValue(totalKeys, 50);
     const labelColor = activeLang ? LANG_COLORS[activeLang] ?? '#ffffff' : 'rgba(255,255,255,0.3)';
     const labelText = activeLang ? activeLang : 'letters';
 
@@ -78,13 +94,13 @@ export function WpmCounter({ totalKeys, activeLang, autoLang, autoLangCountdown,
                     className="font-black tabular-nums leading-none"
                     style={{
                         fontSize: '3.5rem',
-                        color: totalKeys > 0 ? '#ffffff' : 'rgba(255,255,255,0.2)',
-                        textShadow: totalKeys > 0
+                        color: displayKeys > 0 ? '#ffffff' : 'rgba(255,255,255,0.2)',
+                        textShadow: displayKeys > 0
                             ? '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000'
                             : undefined,
                     }}
                 >
-                    {totalKeys}
+                    {displayKeys}
                 </span>
                 <span
                     className="font-bold tracking-widest uppercase"
@@ -103,13 +119,13 @@ export function WpmCounter({ totalKeys, activeLang, autoLang, autoLangCountdown,
                 className="font-black tabular-nums leading-none"
                 style={{
                     fontSize: '6rem',
-                    color: totalKeys > 0 ? '#ffffff' : 'rgba(255,255,255,0.2)',
-                    textShadow: totalKeys > 0
+                    color: displayKeys > 0 ? '#ffffff' : 'rgba(255,255,255,0.2)',
+                    textShadow: displayKeys > 0
                         ? '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000'
                         : undefined,
                 }}
             >
-                {totalKeys}
+                {displayKeys}
             </span>
 
             <div className="flex flex-col items-start gap-1">

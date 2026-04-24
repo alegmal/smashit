@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface Props { visible: boolean }
 
@@ -27,7 +27,7 @@ function makeItem(id: number): RainItem {
     };
 }
 
-export function BabyRain({ visible }: Props) {
+export const BabyRain = React.memo(function BabyRain({ visible }: Props) {
     const [items, setItems] = useState<RainItem[]>([]);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const spawnedRef = useRef(0);
@@ -38,7 +38,6 @@ export function BabyRain({ visible }: Props) {
 
     useEffect(() => {
         if (visible) {
-            // Start fresh spawn
             setItems([]);
             spawnedRef.current = 0;
 
@@ -54,7 +53,6 @@ export function BabyRain({ visible }: Props) {
                 setItems(prev => [...prev, ...batch]);
             }, INTERVAL_MS);
         } else {
-            // Stop spawning — let each item self-remove via onAnimationEnd
             if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
         }
 
@@ -85,4 +83,4 @@ export function BabyRain({ visible }: Props) {
             ))}
         </div>
     );
-}
+});

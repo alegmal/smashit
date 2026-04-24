@@ -1,6 +1,8 @@
+import React from 'react';
+
 interface Props { visible: boolean }
 
-export function WtfOverlay({ visible }: Props) {
+export const WtfOverlay = React.memo(function WtfOverlay({ visible }: Props) {
     if (!visible) return null;
 
     return (
@@ -20,4 +22,4 @@ export function WtfOverlay({ visible }: Props) {
             </span>
         </div>
     );
-}
+});

@@ -1,6 +1,8 @@
+import React from 'react';
+
 interface Props { visible: boolean }
 
-export function DiscoOverlay({ visible }: Props) {
+export const DiscoOverlay = React.memo(function DiscoOverlay({ visible }: Props) {
     if (!visible) return null;
 
     return (
@@ -12,4 +14,4 @@ export function DiscoOverlay({ visible }: Props) {
             }}
         />
     );
-}
+});

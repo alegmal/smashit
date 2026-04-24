@@ -1,6 +1,8 @@
+import React from 'react';
+
 interface Props { visible: boolean }
 
-export function FailOverlay({ visible }: Props) {
+export const FailOverlay = React.memo(function FailOverlay({ visible }: Props) {
     if (!visible) return null;
 
     return (
@@ -21,4 +23,4 @@ export function FailOverlay({ visible }: Props) {
             </span>
         </div>
     );
-}
+});

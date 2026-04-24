@@ -1,6 +1,8 @@
+import React from 'react';
+
 interface Props { visible: boolean }
 
-export function RainbowOverlay({ visible }: Props) {
+export const RainbowOverlay = React.memo(function RainbowOverlay({ visible }: Props) {
     if (!visible) return null;
 
     return (
@@ -13,4 +15,4 @@ export function RainbowOverlay({ visible }: Props) {
             }}
         />
     );
-}
+});

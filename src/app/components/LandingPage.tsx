@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { preloadAllAudio } from "../lib/audio";
+import { preloadAllAudio, getAudioCtx } from "../lib/audio";
 
 interface Props {
     onStart: () => void;
@@ -51,6 +51,7 @@ export function LandingPage({ onStart, isMobile = false }: Props) {
                 {ready ? (
                     <button
                         onClick={onStart}
+                        onTouchStart={() => { try { const ctx = getAudioCtx(); void ctx.resume(); } catch { /* not available */ } }}
                         className="relative group font-black text-3xl px-16 py-6 rounded-3xl transition-all duration-150 active:scale-95 animate-pop-in"
                         style={{
                             background: "linear-gradient(135deg, #ff4757 0%, #a29bfe 50%, #1e90ff 100%)",

@@ -213,6 +213,7 @@
     :root {
         --bg: #0a0a0f;
         --fg: #f0f0ff;
+        --smash-bg: #0a0a0f;
     }
 
     * {

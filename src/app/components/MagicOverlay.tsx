@@ -1,12 +1,11 @@
+import React, { useMemo } from 'react';
 import { COLORS, MAGIC_EMOJIS } from '../constants';
 import type { AiFloodItem } from '../types';
 
 interface Props { visible: boolean }
 
-export function MagicOverlay({ visible }: Props) {
-    if (!visible) return null;
-
-    const items: AiFloodItem[] = Array.from({ length: 80 }, (_, i) => ({
+export const MagicOverlay = React.memo(function MagicOverlay({ visible }: Props) {
+    const items = useMemo<AiFloodItem[]>(() => Array.from({ length: 80 }, (_, i) => ({
         id: i,
         label: MAGIC_EMOJIS[i % MAGIC_EMOJIS.length]!,
         color: COLORS[Math.floor(Math.random() * COLORS.length)]!,
@@ -14,7 +13,9 @@ export function MagicOverlay({ visible }: Props) {
         y: Math.random() * 100,
         size: 1 + Math.random() * 4,
         rot: (Math.random() - 0.5) * 30,
-    }));
+    })), []);
+
+    if (!visible) return null;
 
     return (
         <div className="fixed inset-0 z-[85] pointer-events-none overflow-hidden">
@@ -36,4 +37,4 @@ export function MagicOverlay({ visible }: Props) {
             ))}
         </div>
     );
-}
+});

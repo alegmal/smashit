@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SPACE_EMOJIS } from '../constants';
 
 interface Props { visible: boolean }
@@ -14,7 +14,7 @@ interface StarItem {
     delay: number;
 }
 
-export function SpaceOverlay({ visible }: Props) {
+export const SpaceOverlay = React.memo(function SpaceOverlay({ visible }: Props) {
     const [stars, setStars] = useState<StarItem[]>([]);
 
     useEffect(() => {
@@ -69,4 +69,4 @@ export function SpaceOverlay({ visible }: Props) {
             )}
         </div>
     );
-}
+});

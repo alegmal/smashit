@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { COLORS } from '../constants';
 
 interface Props {
@@ -28,7 +28,7 @@ function makeItems(count: number): FloodItem[] {
     }));
 }
 
-export function OmgSmashOverlay({ msg, shake }: Props) {
+export const OmgSmashOverlay = React.memo(function OmgSmashOverlay({ msg, shake }: Props) {
     const items = useMemo(() => (msg ? makeItems(50) : []), [msg]);
 
     if (!msg) return null;
@@ -67,4 +67,4 @@ export function OmgSmashOverlay({ msg, shake }: Props) {
             ))}
         </div>
     );
-}
+});

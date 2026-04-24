@@ -1,6 +1,8 @@
+import React from 'react';
+
 interface Props { visible: boolean }
 
-export function RocketLaunch({ visible }: Props) {
+export const RocketLaunch = React.memo(function RocketLaunch({ visible }: Props) {
     if (!visible) return null;
 
     return (
@@ -36,4 +38,4 @@ export function RocketLaunch({ visible }: Props) {
             </span>
         </div>
     );
-}
+});
