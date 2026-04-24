@@ -30,6 +30,11 @@ const EGG_BUTTONS = [
     { name: 'BABY', emoji: '👶' },
     { name: 'DOG', emoji: '🐶' },
     { name: 'CAT', emoji: '🐱' },
+    { name: 'AI', emoji: '🤖' },
+    { name: 'BORING', emoji: '😴' },
+    { name: 'LOL', emoji: '😂' },
+    { name: 'DUCK', emoji: '🦆' },
+    { name: 'TRAIN', emoji: '🚂' },
 ];
 
 interface Props {
@@ -40,13 +45,13 @@ interface Props {
     onToggleAutoLang: () => void;
     onSelectLang: (lang: string) => void;
     onFireEgg: (name: string) => void;
+    isMobile?: boolean;
 }
 
-export function WpmCounter({ totalKeys, activeLang, autoLang, autoLangCountdown, onToggleAutoLang, onSelectLang, onFireEgg }: Props) {
+export function WpmCounter({ totalKeys, activeLang, autoLang, autoLangCountdown, onToggleAutoLang, onSelectLang, onFireEgg, isMobile = false }: Props) {
     const labelColor = activeLang ? LANG_COLORS[activeLang] ?? '#ffffff' : 'rgba(255,255,255,0.3)';
     const labelText = activeLang ? activeLang : 'letters';
 
-    // Bump animKey on every language change (but not on first mount)
     const [animKey, setAnimKey] = useState(0);
     const prevLangRef = useRef<string | null>(null);
     useEffect(() => {
@@ -62,6 +67,36 @@ export function WpmCounter({ totalKeys, activeLang, autoLang, autoLangCountdown,
     const handleToggleAutoLang = () => { setShuffleHinted(false); onToggleAutoLang(); };
     const handleSelectLang = (lang: string) => { setFlagHinted(false); onSelectLang(lang); };
 
+    // Mobile: just the counter, vertically centered on the left
+    if (isMobile) {
+        return (
+            <div
+                className="fixed flex flex-col items-start select-none"
+                style={{ left: '0.75rem', top: '50%', transform: 'translateY(-50%)', zIndex: 90 }}
+            >
+                <span
+                    className="font-black tabular-nums leading-none"
+                    style={{
+                        fontSize: '3.5rem',
+                        color: totalKeys > 0 ? '#ffffff' : 'rgba(255,255,255,0.2)',
+                        textShadow: totalKeys > 0
+                            ? '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000'
+                            : undefined,
+                    }}
+                >
+                    {totalKeys}
+                </span>
+                <span
+                    className="font-bold tracking-widest uppercase"
+                    style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)' }}
+                >
+                    letters
+                </span>
+            </div>
+        );
+    }
+
+    // Desktop: full layout
     return (
         <div className="absolute bottom-80 left-12 flex items-end gap-3 select-none">
             <span
