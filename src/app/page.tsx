@@ -83,6 +83,7 @@ export default function SmashItPage() {
     const cleanupRef = useRef<(() => void) | null>(null);
     const counterRef = useRef(0);
     const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holdActiveRef = useRef(false);
 
     const wpmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const nextSlotRef = useRef(0);
@@ -364,8 +365,10 @@ export default function SmashItPage() {
 
         const startHold = () => {
             stopHold();
+            holdActiveRef.current = true;
             let delay = 300;
             const tick = () => {
+                if (!holdActiveRef.current) return;
                 processKey(randomLetter());
                 delay = Math.max(50, delay * 0.85);
                 holdTimerRef.current = setTimeout(tick, delay);
@@ -374,6 +377,7 @@ export default function SmashItPage() {
         };
 
         const stopHold = () => {
+    holdActiveRef.current = false;
             if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
         };
 
