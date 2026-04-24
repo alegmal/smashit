@@ -574,7 +574,7 @@ export default function SmashItPage() {
 
             {!lastKey && (
                 <div className="text-center select-none animate-pulse-big">
-                    <div className="text-7xl mb-4">👶</div>
+                    <div className="text-7xl mb-4">💩</div>
                     <p className="text-4xl font-bold text-white/60">{isMobile ? 'Start tapping!' : 'Smash those keys!'}</p>
                 </div>
             )}
@@ -831,7 +831,7 @@ export default function SmashItPage() {
                         { name: 'SHARK', emoji: '🦈' },
                         { name: 'UNICORN', emoji: '🦄' },
                         { name: 'POOP', emoji: '💩' },
-                        { name: 'BABY', emoji: '👶' },
+                        { name: 'BABY', emoji: '💩' },
                         { name: 'DOG', emoji: '🐶' },
                         { name: 'CAT', emoji: '🐱' },
                         { name: 'AI', emoji: '🤖' },
