@@ -13,6 +13,18 @@ export function getAudioCtx(): AudioContext {
     return audioCtx;
 }
 
+export function suspendAudio(): void {
+    if (audioCtx && audioCtx.state === 'running') {
+        void audioCtx.suspend();
+    }
+}
+
+export function resumeAudio(): void {
+    if (audioCtx && audioCtx.state === 'suspended') {
+        void audioCtx.resume();
+    }
+}
+
 export function playLetterPop() {
     try {
         const ctx = getAudioCtx();
