@@ -35,7 +35,6 @@ const EGG_BUTTONS = [
 interface Props {
     totalKeys: number;
     activeLang: string | null;
-    onCycleLang: () => void;
     autoLang: boolean;
     autoLangCountdown: number;
     onToggleAutoLang: () => void;
@@ -43,7 +42,7 @@ interface Props {
     onFireEgg: (name: string) => void;
 }
 
-export function WpmCounter({ totalKeys, activeLang, onCycleLang, autoLang, autoLangCountdown, onToggleAutoLang, onSelectLang, onFireEgg }: Props) {
+export function WpmCounter({ totalKeys, activeLang, autoLang, autoLangCountdown, onToggleAutoLang, onSelectLang, onFireEgg }: Props) {
     const labelColor = activeLang ? LANG_COLORS[activeLang] ?? '#ffffff' : 'rgba(255,255,255,0.3)';
     const labelText = activeLang ? activeLang : 'letters';
 

@@ -105,6 +105,7 @@ export function useChaseMode({ setFrame, particlesRef, impactsRef, startPhysicsL
             chaseRafRef.current = requestAnimationFrame(tick);
         };
         chaseRafRef.current = requestAnimationFrame(tick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [setFrame]);
 
     const attachMouseMove = useCallback(() => {

@@ -28,7 +28,6 @@ function makeItems(label: string, count: number): FloodItem[] {
 }
 
 export function YesDoneOverlay({ msg }: Props) {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const items = useMemo(() => (msg ? makeItems(msg, 50) : []), [msg]);
 
     if (!msg) return null;

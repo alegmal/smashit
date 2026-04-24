@@ -62,7 +62,7 @@ export default function SmashItPage() {
     const poopCounterRef = useRef(0);
     const [cornerFlash, setCornerFlash] = useState<{ id: number; color: string } | null>(null);
     const [cornerMsg, setCornerMsg] = useState<{ id: number } | null>(null);
-    const [cornerMsgId, setCornerMsgId] = useState(0);
+    const cornerMsgIdRef = useRef(0);
     const [cornerHintSeen, setCornerHintSeen] = useState(false);
 
     const [keyCounts, setKeyCounts] = useState<Record<string, number>>({});
@@ -81,7 +81,7 @@ export default function SmashItPage() {
     const strokeCountRef = useRef(0);
     const cleanupRef = useRef<(() => void) | null>(null);
     const counterRef = useRef(0);
-    const keyTimesRef = useRef<number[]>([]);
+
     const wpmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const nextSlotRef = useRef(0);
     const timerMapRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
@@ -121,14 +121,11 @@ export default function SmashItPage() {
                         impactsRef.current.push({ x, y, color, wall });
                     }
                 }
-                setCornerMsgId(prev => {
-                    const id = prev + 1;
-                    setCornerFlash({ id, color });
-                    setCornerMsg({ id });
-                    setTimeout(() => setCornerFlash(f => f?.id === id ? null : f), 700);
-                    setTimeout(() => setCornerMsg(m => m?.id === id ? null : m), 3500);
-                    return id;
-                });
+                const id = ++cornerMsgIdRef.current;
+                setCornerFlash({ id, color });
+                setCornerMsg({ id });
+                setTimeout(() => setCornerFlash(f => f?.id === id ? null : f), 700);
+                setTimeout(() => setCornerMsg(m => m?.id === id ? null : m), 3500);
             }, [impactsRef, handleBonusKeys]),
         });
 
@@ -142,13 +139,6 @@ export default function SmashItPage() {
     const { milestoneMessage, recordStroke, resetMilestones } = useMilestones({
         onAddKeys: handleBonusKeys,
     });
-
-    const onCycleLang = useCallback(() => {
-        setActiveLang(prev => {
-            const others = LANG_NAMES.filter(l => l !== prev);
-            return others[Math.floor(Math.random() * others.length)] ?? null;
-        });
-    }, []);
 
     const onSelectLang = useCallback((lang: string) => {
         setActiveLang(lang);
@@ -394,6 +384,7 @@ export default function SmashItPage() {
 
         startCritters();
         setIsCapturing(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stopCapture, startPhysicsLoop, clearIdleState, startIdleFlyLoop,
         handleEggInput, recordStroke, checkAndToggleChase,
         idleFallTimerRef, particlesRef, startCritters]);
@@ -406,8 +397,11 @@ export default function SmashItPage() {
             if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
             if (idleRafRef.current !== null) cancelAnimationFrame(idleRafRef.current);
             if (idleFallTimerRef.current) clearTimeout(idleFallTimerRef.current);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             if (critterIntervalRef.current) clearTimeout(critterIntervalRef.current);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             if (autoLangIntervalRef.current) clearInterval(autoLangIntervalRef.current);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             timerMapRef.current.forEach(t => clearTimeout(t));
         };
     }, [rafRef, idleRafRef, idleFallTimerRef, critterIntervalRef]);
@@ -752,7 +746,7 @@ export default function SmashItPage() {
                     </span>
                 </div>
             )}
-            <WpmCounter totalKeys={Math.floor(totalKeys)} activeLang={activeLang} onCycleLang={onCycleLang} autoLang={autoLang} autoLangCountdown={autoLangCountdown} onToggleAutoLang={onToggleAutoLang} onSelectLang={onSelectLang} onFireEgg={fireEgg} />
+            <WpmCounter totalKeys={Math.floor(totalKeys)} activeLang={activeLang} autoLang={autoLang} autoLangCountdown={autoLangCountdown} onToggleAutoLang={onToggleAutoLang} onSelectLang={onSelectLang} onFireEgg={fireEgg} />
             <button
                 className="absolute select-none transition-all duration-150 active:scale-95"
                 style={{
