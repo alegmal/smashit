@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BorderLetter, FloatingKey, LastKeyState } from "./types";
-import { playAirHorn, playAirHornSoft, playBlip, playFart, playLetterPop, playSillySound } from "./lib/audio";
+import { playAirHorn, playAirHornSoft, playBlip, playFart, playLetterPop, playSillySound, suspendAudio, resumeAudio } from "./lib/audio";
 import { getKeyLabel, LANG_NAMES, randomColor, slotToPosition, transliterateLabel } from "./lib/utils";
 import { downloadShareCard } from "./lib/shareCard";
 import { MARGIN, ALL_EGG_NAMES, EGG_DISPLAY_LABELS, ORBIT_HIT_RADIUS } from "./constants";
@@ -99,6 +99,20 @@ export default function SmashItPage() {
     const isMobile = useIsMobile();
     const isMobileRef = useRef(isMobile);
     useEffect(() => { isMobileRef.current = isMobile; }, [isMobile]);
+
+    useEffect(() => {
+        const onVisibility = () => document.hidden ? suspendAudio() : resumeAudio();
+        const onBlur = () => suspendAudio();
+        const onFocus = () => resumeAudio();
+        document.addEventListener('visibilitychange', onVisibility);
+        window.addEventListener('blur', onBlur);
+        window.addEventListener('focus', onFocus);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibility);
+            window.removeEventListener('blur', onBlur);
+            window.removeEventListener('focus', onFocus);
+        };
+    }, []);
 
     const { particlesRef, rafRef, impactsRef, startPhysicsLoop } = usePhysicsLoop(setFrame);
     const discoverEggRef = useRef<((name: string) => void) | null>(null);
