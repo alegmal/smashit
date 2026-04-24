@@ -30,7 +30,7 @@ export function LandingPage({ onStart, isMobile = false }: Props) {
             style={{ background: "radial-gradient(ellipse at 50% 40%, #1a0a2e 0%, #0a0a0f 70%)" }}
         >
             <div className="flex flex-col items-center gap-3">
-                <div className="text-8xl">👶</div>
+                <div className="text-8xl">💩</div>
                 <h1
                     className="font-black text-7xl sm:text-8xl tracking-tight"
                     style={{
