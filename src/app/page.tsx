@@ -363,6 +363,7 @@ export default function SmashItPage() {
         };
 
         const startHold = () => {
+            stopHold();
             let delay = 300;
             const tick = () => {
                 processKey(randomLetter());
@@ -580,7 +581,7 @@ export default function SmashItPage() {
             )}
 
             {/* Orbit letters around cursor */}
-            {orbitLetters.map((letter, i) => {
+            {!isMobile && orbitLetters.map((letter, i) => {
                 const pos = orbitPositions[i];
                 if (!pos) return null;
                 const angleDeg = (pos.angle * 180) / Math.PI + masterAngleDeg * 0;
@@ -831,7 +832,7 @@ export default function SmashItPage() {
                         { name: 'SHARK', emoji: '🦈' },
                         { name: 'UNICORN', emoji: '🦄' },
                         { name: 'POOP', emoji: '💩' },
-                        { name: 'BABY', emoji: '💩' },
+                        { name: 'BABY', emoji: '👶' },
                         { name: 'DOG', emoji: '🐶' },
                         { name: 'CAT', emoji: '🐱' },
                         { name: 'AI', emoji: '🤖' },
