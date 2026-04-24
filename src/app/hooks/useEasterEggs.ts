@@ -7,7 +7,7 @@ import { COLORS, YAML_SNIPPETS, MEETING_PHRASES } from '../constants';
 import {
     playCoin, playFart, playLoudFart, playBlip, playBabyCry,
     playAirHorn, playQuack,
-    playDeploy, playWhat, playSnore, playSadTrombone, playZoomNotify,
+    playDeploy, playWhat, playSnore, playZoomNotify,
     playRoar, playMeow, playWoof, playMagic, playTrain,
 } from '../lib/audio';
 import type { AiFloodItem } from '../types';
@@ -449,7 +449,7 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
             if (poopShowerFartRef.current) clearInterval(poopShowerFartRef.current);
             let fartCount = 0;
             poopShowerFartRef.current = setInterval(() => {
-                fartCount % 3 === 0 ? playLoudFart() : playFart();
+                if (fartCount % 3 === 0) { playLoudFart(); } else { playFart(); }
                 fartCount++;
             }, 380);
             // Reset shared timer — clears when either name is active
@@ -498,7 +498,7 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
             if (poopShowerFartRef.current) clearInterval(poopShowerFartRef.current);
             let fartCount = 0;
             poopShowerFartRef.current = setInterval(() => {
-                fartCount % 3 === 0 ? playLoudFart() : playFart();
+                if (fartCount % 3 === 0) { playLoudFart(); } else { playFart(); }
                 fartCount++;
             }, 380);
             if (poopShowerTimerRef.current) clearTimeout(poopShowerTimerRef.current);

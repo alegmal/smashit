@@ -29,7 +29,6 @@ function makeItems(count: number): FloodItem[] {
 }
 
 export function OmgSmashOverlay({ msg, shake }: Props) {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const items = useMemo(() => (msg ? makeItems(50) : []), [msg]);
 
     if (!msg) return null;
