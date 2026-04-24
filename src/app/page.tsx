@@ -96,6 +96,8 @@ export default function SmashItPage() {
     useEffect(() => { autoLangRef.current = autoLang; }, [autoLang]);
 
     const isMobile = useIsMobile();
+    const isMobileRef = useRef(isMobile);
+    useEffect(() => { isMobileRef.current = isMobile; }, [isMobile]);
 
     const { particlesRef, rafRef, impactsRef, startPhysicsLoop } = usePhysicsLoop(setFrame);
     const discoverEggRef = useRef<((name: string) => void) | null>(null);
@@ -258,7 +260,7 @@ export default function SmashItPage() {
                 setMultiplier(1);
             }, 1000);
 
-            setKeyCounts(prev => ({ ...prev, [rawLabel]: (prev[rawLabel] ?? 0) + 1 }));
+            if (!isMobileRef.current) setKeyCounts(prev => ({ ...prev, [rawLabel]: (prev[rawLabel] ?? 0) + 1 }));
             const lang = activeLangRef.current;
             const label = lang ? transliterateLabel(rawLabel, lang) : rawLabel;
             const color = randomColor();
@@ -299,7 +301,7 @@ export default function SmashItPage() {
             const pos = slotToPosition(nextSlotRef.current++);
             const isTopEdge = pos.y <= MARGIN + 2;
             const spawnY = isTopEdge ? window.innerHeight - MARGIN : pos.y;
-            setBorderLetters(prev => [...prev, { id, label, color, x: pos.x, y: pos.y, size: borderSize, spawnY }]);
+            if (!isMobileRef.current) setBorderLetters(prev => [...prev, { id, label, color, x: pos.x, y: pos.y, size: borderSize, spawnY }]);
 
             const timer = setTimeout(() => {
                 timerMapRef.current.delete(id);
@@ -312,7 +314,11 @@ export default function SmashItPage() {
                 setBorderLetters(prev => prev.filter(l => l.id !== id));
                 const speed = 30 + Math.random() * 45;
                 const angle = Math.random() * Math.PI * 2;
-                particlesRef.current = [...particlesRef.current, {
+                const MAX_PARTICLES = 15;
+                const trimmed = particlesRef.current.length >= MAX_PARTICLES
+                    ? particlesRef.current.slice(-(MAX_PARTICLES - 1))
+                    : particlesRef.current;
+                particlesRef.current = [...trimmed, {
                     id, label, color,
                     x: pos.x, y: spawnY,
                     vx: Math.cos(angle) * speed,
@@ -331,6 +337,7 @@ export default function SmashItPage() {
                 id: id * 100 + i, label, color,
                 x: 10 + Math.random() * 80,
                 y: 10 + Math.random() * 70,
+                fontSize: `${1.5 + Math.random() * 2.5}rem`,
             }));
             setFloaters(prev => [...prev, ...newFloaters].slice(-60));
         };
@@ -584,9 +591,9 @@ export default function SmashItPage() {
                 </div>
             )}
 
-            <BorderLetters letters={borderLetters} />
+            {!isMobile && <BorderLetters letters={borderLetters} />}
             <Particles particlesRef={particlesRef} _frame={_frame} />
-            <ImpactCanvas impactsRef={impactsRef} />
+            {!isMobile && <ImpactCanvas impactsRef={impactsRef} />}
 
             {/* Corner hit flash */}
             {cornerFlash && (
