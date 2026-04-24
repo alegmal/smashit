@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-interface Props { visible: boolean }
+interface Props { visible: boolean; isMobile?: boolean }
 
 interface RainItem {
     id: number;
@@ -13,7 +13,8 @@ interface RainItem {
 }
 
 const EMOJIS = ['☕', '🫖'];
-const TOTAL = 1000;
+const TOTAL_DESKTOP = 1000;
+const TOTAL_MOBILE = 200;
 const BATCH = 40;
 const INTERVAL_MS = 80;
 
@@ -27,10 +28,11 @@ function makeItem(id: number): RainItem {
     };
 }
 
-export function CoffeeRain({ visible }: Props) {
+export const CoffeeRain = React.memo(function CoffeeRain({ visible, isMobile = false }: Props) {
     const [items, setItems] = useState<RainItem[]>([]);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const spawnedRef = useRef(0);
+    const TOTAL = isMobile ? TOTAL_MOBILE : TOTAL_DESKTOP;
 
     const removeItem = useCallback((id: number) => {
         setItems(prev => prev.filter(item => item.id !== id));
@@ -51,6 +53,8 @@ export function CoffeeRain({ visible }: Props) {
             if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
         }
         return () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
+    // TOTAL is derived from isMobile which only changes on mount — safe to omit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visible]);
 
     if (items.length === 0) return null;
@@ -75,4 +79,4 @@ export function CoffeeRain({ visible }: Props) {
             ))}
         </div>
     );
-}
+});

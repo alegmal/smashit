@@ -1,10 +1,11 @@
+import React from 'react';
 import Image from 'next/image';
 
 interface Props {
     visible: boolean;
 }
 
-export function AlegOverlay({ visible }: Props) {
+export const AlegOverlay = React.memo(function AlegOverlay({ visible }: Props) {
     if (!visible) return null;
 
     return (
@@ -23,4 +24,4 @@ export function AlegOverlay({ visible }: Props) {
             </p>
         </div>
     );
-}
+});

@@ -52,7 +52,7 @@ export default function SmashItPage() {
     const [isCapturing, setIsCapturing] = useState(false);
     const [lastKey, setLastKey] = useState<LastKeyState | null>(null);
     const [floaters, setFloaters] = useState<FloatingKey[]>([]);
-    const [bgColor, setBgColor] = useState("#0a0a0f");
+    const bgColorRef = useRef("#0a0a0f");
     const [totalKeys, setTotalKeys] = useState(0);
     const [borderLetters, setBorderLetters] = useState<BorderLetter[]>([]);
     const [_frame, setFrame] = useState(0);
@@ -82,6 +82,7 @@ export default function SmashItPage() {
     const strokeCountRef = useRef(0);
     const cleanupRef = useRef<(() => void) | null>(null);
     const counterRef = useRef(0);
+    const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const wpmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const nextSlotRef = useRef(0);
@@ -193,6 +194,7 @@ export default function SmashItPage() {
         boostHornCountRef.current = 0;
         setMultiplier(1);
         setBoostPopup(null);
+        if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
         if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
         if (idleFallTimerRef.current) { clearTimeout(idleFallTimerRef.current); idleFallTimerRef.current = null; }
         if (idleRafRef.current !== null) { cancelAnimationFrame(idleRafRef.current); idleRafRef.current = null; }
@@ -213,7 +215,8 @@ export default function SmashItPage() {
         setCornerHintSeen(false);
         setFloaters([]);
         setPoops([]);
-        setBgColor("#0a0a0f");
+        bgColorRef.current = "#0a0a0f";
+        document.documentElement.style.setProperty('--smash-bg', '#0a0a0f');
         setFrame(0);
         setActiveLang(null);
         stopAutoLang();
@@ -276,7 +279,8 @@ export default function SmashItPage() {
             const fontSize = `clamp(1.5rem, ${remSize}rem, min(95vw, 90vh))`;
 
             setLastKey({ label, color, id, fontSize });
-            setBgColor(color + "22");
+            bgColorRef.current = color + "22";
+            document.documentElement.style.setProperty('--smash-bg', color + "22");
 
             checkAndToggleChase(rawLabel, color);
 
@@ -333,13 +337,29 @@ export default function SmashItPage() {
             }, 5000);
             timerMapRef.current.set(id, timer);
 
-            const newFloaters = Array.from({ length: 3 }, (_, i) => ({
-                id: id * 100 + i, label, color,
-                x: 10 + Math.random() * 80,
-                y: 10 + Math.random() * 70,
-                fontSize: `${1.5 + Math.random() * 2.5}rem`,
-            }));
-            setFloaters(prev => [...prev, ...newFloaters].slice(-60));
+            if (!isMobileRef.current) {
+                const newFloaters = Array.from({ length: 3 }, (_, i) => ({
+                    id: id * 100 + i, label, color,
+                    x: 10 + Math.random() * 80,
+                    y: 10 + Math.random() * 70,
+                    fontSize: `${1.5 + Math.random() * 2.5}rem`,
+                }));
+                setFloaters(prev => [...prev, ...newFloaters].slice(-60));
+            }
+        };
+
+        const startHold = () => {
+            let delay = 300;
+            const tick = () => {
+                processKey(randomLetter());
+                delay = Math.max(50, delay * 0.85);
+                holdTimerRef.current = setTimeout(tick, delay);
+            };
+            holdTimerRef.current = setTimeout(tick, 300);
+        };
+
+        const stopHold = () => {
+            if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
         };
 
         const onKeyDown = (e: KeyboardEvent) => {
@@ -385,8 +405,12 @@ export default function SmashItPage() {
             const id = ++poopCounterRef.current;
             setPoops(prev => [...prev, { id, x: e.clientX, y: e.clientY }]);
             setTimeout(() => setPoops(prev => prev.filter(p => p.id !== id)), 1000);
+            processKey(randomLetter());
+            startHold();
         };
+        const onMouseUp = () => stopHold();
         document.addEventListener("mousedown", onMouseDown, true);
+        document.addEventListener("mouseup", onMouseUp, true);
 
         const onTouchStart = (e: TouchEvent) => {
             // Let button taps through so egg buttons remain clickable
@@ -395,8 +419,12 @@ export default function SmashItPage() {
             // Each tap gets a random language so characters vary
             activeLangRef.current = LANG_NAMES[Math.floor(Math.random() * LANG_NAMES.length)] ?? null;
             processKey(randomLetter());
+            startHold();
         };
+        const onTouchEnd = () => stopHold();
         document.addEventListener("touchstart", onTouchStart, { passive: false });
+        document.addEventListener("touchend", onTouchEnd, { passive: true });
+        document.addEventListener("touchcancel", onTouchEnd, { passive: true });
 
         cleanupRef.current = () => {
             document.removeEventListener("keydown", onKeyDown, true);
@@ -405,7 +433,10 @@ export default function SmashItPage() {
             document.removeEventListener("contextmenu", onContextMenu, true);
             document.removeEventListener("fullscreenchange", onFullscreenChange);
             document.removeEventListener("mousedown", onMouseDown, true);
+            document.removeEventListener("mouseup", onMouseUp, true);
             document.removeEventListener("touchstart", onTouchStart);
+            document.removeEventListener("touchend", onTouchEnd);
+            document.removeEventListener("touchcancel", onTouchEnd);
             window.removeEventListener("beforeunload", onBeforeUnload);
         };
 
@@ -452,7 +483,7 @@ export default function SmashItPage() {
         <div
             className="fixed inset-0 flex items-center justify-center overflow-hidden transition-colors duration-100"
             style={{
-                backgroundColor: bgColor,
+                backgroundColor: 'var(--smash-bg)',
                 ...(activeEgg?.name === 'YOLO' ? { animation: 'yolo-barrel-roll 2.5s ease-in-out forwards', transformOrigin: 'center center', perspective: '800px' } : {}),
             }}
         >
@@ -652,22 +683,22 @@ export default function SmashItPage() {
             ))}
 
             {/* z-80 */}
-            <PizzaRain visible={activeEgg?.name === 'PIZZA'} />
-            <CoffeeRain visible={activeEgg?.name === 'COFFEE'} />
-            <AnimalRain visible={activeEgg?.name === 'BUG'} emojis={['🐛']} />
-            <DuckRain visible={activeEgg?.name === 'DUCK'} triggerCount={activeEgg?.name === 'DUCK' ? (activeEgg.gen ?? 0) : 0} />
+            <PizzaRain visible={activeEgg?.name === 'PIZZA'} isMobile={isMobile} />
+            <CoffeeRain visible={activeEgg?.name === 'COFFEE'} isMobile={isMobile} />
+            <AnimalRain visible={activeEgg?.name === 'BUG'} emojis={['🐛']} isMobile={isMobile} />
+            <DuckRain visible={activeEgg?.name === 'DUCK'} triggerCount={activeEgg?.name === 'DUCK' ? (activeEgg.gen ?? 0) : 0} isMobile={isMobile} />
             <QwertyRain visible={activeEgg?.name === 'QWERTY'} />
-            <MatrixRain visible={activeEgg?.name === 'MATRIX'} triggerCount={activeEgg?.name === 'MATRIX' ? (activeEgg.gen ?? 0) : 0} />
+            <MatrixRain visible={activeEgg?.name === 'MATRIX'} triggerCount={activeEgg?.name === 'MATRIX' ? (activeEgg.gen ?? 0) : 0} isMobile={isMobile} />
             <LolOverlay visible={activeEgg?.name === 'LOL'} flood={activeEgg?.flood ?? []} />
-            <AnimalRain visible={activeEgg?.name === 'LOL'} emojis={['😂']} />
+            <AnimalRain visible={activeEgg?.name === 'LOL'} emojis={['😂']} isMobile={isMobile} />
             <MeetingOverlay visible={activeEgg?.name === 'MEETING'} flood={activeEgg?.flood ?? []} />
-            <AnimalRain visible={activeEgg?.name === 'DINO'} emojis={['🦕', '🦖']} swim={true} minSize={8} maxSize={25} />
-            <AnimalRain visible={activeEgg?.name === 'CAT'} emojis={['🐱']} />
-            <AnimalRain visible={activeEgg?.name === 'DOG'} emojis={['🐶', '🦴']} />
-            <AnimalRain visible={activeEgg?.name === 'FROG'} emojis={['🐸']} />
-            <AnimalRain visible={activeEgg?.name === 'SHARK'} emojis={['🦈']} swim={true} minSize={4.8} maxSize={19.8} />
-            <UnicornRain visible={activeEgg?.name === 'UNICORN'} />
-            <AnimalRain visible={activeEgg?.name === 'TRAIN'} emojis={['🚂', '🚃', '🚄']} swim={true} />
+            <AnimalRain visible={activeEgg?.name === 'DINO'} emojis={['🦕', '🦖']} swim={true} minSize={8} maxSize={25} isMobile={isMobile} />
+            <AnimalRain visible={activeEgg?.name === 'CAT'} emojis={['🐱']} isMobile={isMobile} />
+            <AnimalRain visible={activeEgg?.name === 'DOG'} emojis={['🐶', '🦴']} isMobile={isMobile} />
+            <AnimalRain visible={activeEgg?.name === 'FROG'} emojis={['🐸']} isMobile={isMobile} />
+            <AnimalRain visible={activeEgg?.name === 'SHARK'} emojis={['🦈']} swim={true} minSize={4.8} maxSize={19.8} isMobile={isMobile} />
+            <UnicornRain visible={activeEgg?.name === 'UNICORN'} isMobile={isMobile} />
+            <AnimalRain visible={activeEgg?.name === 'TRAIN'} emojis={['🚂', '🚃', '🚄']} swim={true} isMobile={isMobile} />
             <BabyRain visible={activeEgg?.name === 'BABY'} />
             <DevOpsFloodOverlay visible={activeEgg?.name === 'DEVOPS'} flood={activeEgg?.flood ?? []} />
             {/* z-82 */}
@@ -691,9 +722,9 @@ export default function SmashItPage() {
             {/* z-100 */}
             <AlegOverlay visible={activeEgg?.name === 'ALEG'} />
             {/* boring rain */}
-            <AnimalRain visible={activeEgg?.name === 'BORING'} emojis={['😴']} />
+            <AnimalRain visible={activeEgg?.name === 'BORING'} emojis={['😴']} isMobile={isMobile} />
             {/* poop / linkedin shower */}
-            <AnimalRain visible={activeEgg?.name === 'POOP' || activeEgg?.name === 'LINKEDIN'} emojis={['💩']} total={250} minSize={2} maxSize={14} />
+            <AnimalRain visible={activeEgg?.name === 'POOP' || activeEgg?.name === 'LINKEDIN'} emojis={['💩']} total={250} minSize={2} maxSize={14} isMobile={isMobile} />
             {/* DVD corner hints — desktop only */}
             {!isMobile && idleFlyRef.current?.phase === 'bouncing' && !cornerHintSeen && (
                 <>

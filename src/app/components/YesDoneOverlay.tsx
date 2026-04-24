@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { COLORS } from '../constants';
 
 interface Props {
@@ -27,7 +27,7 @@ function makeItems(label: string, count: number): FloodItem[] {
     }));
 }
 
-export function YesDoneOverlay({ msg }: Props) {
+export const YesDoneOverlay = React.memo(function YesDoneOverlay({ msg }: Props) {
     const items = useMemo(() => (msg ? makeItems(msg, 50) : []), [msg]);
 
     if (!msg) return null;
@@ -53,4 +53,4 @@ export function YesDoneOverlay({ msg }: Props) {
             ))}
         </div>
     );
-}
+});

@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DEPLOY_LINES } from '../constants';
 
 interface Props { visible: boolean }
 
-export function DeployOverlay({ visible }: Props) {
+export const DeployOverlay = React.memo(function DeployOverlay({ visible }: Props) {
     const [shown, setShown] = useState(false);
     const [fadingOut, setFadingOut] = useState(false);
 
@@ -44,7 +44,6 @@ export function DeployOverlay({ visible }: Props) {
                         lineHeight: 1.7,
                     }}
                 >
-                    {/* Spacer pushes text below container at t=0; animation scrolls it up into view */}
                     <div style={{ height: '27vh' }} />
                     {DEPLOY_LINES.map((line, i) => (
                         <div key={i}>{line}</div>
@@ -54,4 +53,4 @@ export function DeployOverlay({ visible }: Props) {
             </div>
         </div>
     );
-}
+});

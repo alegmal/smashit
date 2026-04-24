@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface Props {
     visible: boolean;
     emojis: string[];
     total?: number;
-    swim?: boolean; // horizontal crawl instead of falling
+    swim?: boolean;
     minSize?: number;
     maxSize?: number;
+    isMobile?: boolean;
 }
 
 interface RainItem {
@@ -23,18 +24,17 @@ interface RainItem {
 const BATCH = 10;
 const INTERVAL_MS = 80;
 
-export function AnimalRain({ visible, emojis, total = 400, swim = false, minSize = 1.6, maxSize = 6.6 }: Props) {
+export const AnimalRain = React.memo(function AnimalRain({ visible, emojis, total = 400, swim = false, minSize = 1.6, maxSize = 6.6, isMobile = false }: Props) {
     const [items, setItems] = useState<RainItem[]>([]);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const spawnedRef = useRef(0);
 
-    // Keep emojis/swim/size in refs so the effect only re-runs when visible changes
     const emojisRef = useRef(emojis);
     emojisRef.current = emojis;
     const swimRef = useRef(swim);
     swimRef.current = swim;
     const totalRef = useRef(total);
-    totalRef.current = total;
+    totalRef.current = isMobile ? Math.ceil(total / 2) : total;
     const minSizeRef = useRef(minSize);
     minSizeRef.current = minSize;
     const maxSizeRef = useRef(maxSize);
@@ -80,7 +80,7 @@ export function AnimalRain({ visible, emojis, total = 400, swim = false, minSize
         return () => {
             if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
         };
-    }, [visible]); // only visible — emojis/swim/total accessed via refs
+    }, [visible]);
 
     if (items.length === 0) return null;
 
@@ -120,4 +120,4 @@ export function AnimalRain({ visible, emojis, total = 400, swim = false, minSize
             ))}
         </div>
     );
-}
+});

@@ -8,7 +8,7 @@ import { NOTES } from '../constants';
 
 let audioCtx: AudioContext | null = null;
 
-function getAudioCtx(): AudioContext {
+export function getAudioCtx(): AudioContext {
     if (!audioCtx) audioCtx = new AudioContext();
     return audioCtx;
 }

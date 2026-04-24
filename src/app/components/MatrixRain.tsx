@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
-interface Props { visible: boolean; triggerCount: number }
+interface Props { visible: boolean; triggerCount: number; isMobile?: boolean }
 
 interface RainItem {
     id: number;
@@ -14,7 +14,8 @@ interface RainItem {
 
 const CHARS = ['0','1','0','1','0','0','1'];
 const MATRIX_GREEN = '#2ed573';
-const TOTAL = 1200;
+const TOTAL_DESKTOP = 1200;
+const TOTAL_MOBILE = 300;
 const BATCH = 8;
 const INTERVAL_MS = 60;
 
@@ -28,15 +29,16 @@ function makeItem(id: number, bonusDuration: number): RainItem {
     };
 }
 
-export function MatrixRain({ visible, triggerCount }: Props) {
+export const MatrixRain = React.memo(function MatrixRain({ visible, triggerCount, isMobile = false }: Props) {
     const [items, setItems] = useState<RainItem[]>([]);
+    const TOTAL = isMobile ? TOTAL_MOBILE : TOTAL_DESKTOP;
 
     const removeItem = useCallback((id: number) => {
         setItems(prev => prev.filter(item => item.id !== id));
     }, []);
 
     useEffect(() => {
-        if (!visible) return; // items drain naturally via onAnimationEnd — no abrupt clear
+        if (!visible) return;
         const idOffset = Date.now();
         let localSpawned = 0;
         const interval = setInterval(() => {
@@ -46,7 +48,7 @@ export function MatrixRain({ visible, triggerCount }: Props) {
             setItems(prev => [...prev, ...batch]);
         }, INTERVAL_MS);
         return () => clearInterval(interval);
-    }, [visible, triggerCount]);
+    }, [visible, triggerCount, TOTAL]);
 
     if (items.length === 0) return null;
 
@@ -72,4 +74,4 @@ export function MatrixRain({ visible, triggerCount }: Props) {
             ))}
         </div>
     );
-}
+});

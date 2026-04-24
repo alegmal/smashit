@@ -14,10 +14,9 @@ interface Pixel {
     size: number;
     color: string;
     born: number;
-    life: number; // ms
+    life: number;
 }
 
-// Velocity bias per wall: pixels scatter away from the surface
 function wallBias(wall: ImpactEvent['wall']): { vxMin: number; vxMax: number; vyMin: number; vyMax: number } {
     switch (wall) {
         case 'left':   return { vxMin: 1,  vxMax: 8,  vyMin: -5, vyMax: 5 };
@@ -67,10 +66,11 @@ export function ImpactCanvas({ impactsRef, enabled = true }: Props) {
                 }
             }
 
-            if (pixelsRef.current.length === 0) {
-                // Nothing to draw — idle until new impacts arrive
+            const hasNewImpacts = impactsRef.current.length > 0;
+
+            if (pixelsRef.current.length === 0 && !hasNewImpacts) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                rafRef.current = null;
+                rafRef.current = requestAnimationFrame(tick);
                 return;
             }
 
@@ -83,7 +83,7 @@ export function ImpactCanvas({ impactsRef, enabled = true }: Props) {
 
                 px.x += px.vx;
                 px.y += px.vy;
-                px.vy += 0.4; // gravity
+                px.vy += 0.4;
 
                 const alpha = 1 - elapsed / px.life;
                 ctx.globalAlpha = alpha;
@@ -96,22 +96,9 @@ export function ImpactCanvas({ impactsRef, enabled = true }: Props) {
             rafRef.current = requestAnimationFrame(tick);
         };
 
-        // Restart the loop whenever new impacts are pushed
-        const wakeUp = () => {
-            if (rafRef.current === null) {
-                rafRef.current = requestAnimationFrame(tick);
-            }
-        };
-
-        // Poll for incoming impacts using a lightweight interval (avoids modifying impactsRef callers)
-        const wakeInterval = setInterval(() => {
-            if (impactsRef.current.length > 0) wakeUp();
-        }, 16);
-
         rafRef.current = requestAnimationFrame(tick);
         return () => {
             if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-            clearInterval(wakeInterval);
             window.removeEventListener('resize', resize);
         };
     }, [impactsRef, enabled]);

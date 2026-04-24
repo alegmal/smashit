@@ -1,6 +1,8 @@
+import React from 'react';
+
 interface Props { visible: boolean }
 
-export function HireOverlay({ visible }: Props) {
+export const HireOverlay = React.memo(function HireOverlay({ visible }: Props) {
     if (!visible) return null;
 
     return (
@@ -21,4 +23,4 @@ export function HireOverlay({ visible }: Props) {
             </span>
         </div>
     );
-}
+});
