@@ -5,9 +5,10 @@ import { preloadAllAudio } from "../lib/audio";
 
 interface Props {
     onStart: () => void;
+    isMobile?: boolean;
 }
 
-export function LandingPage({ onStart }: Props) {
+export function LandingPage({ onStart, isMobile = false }: Props) {
     const [loaded, setLoaded] = useState(0);
     const [total, setTotal] = useState(0);
     const [ready, setReady] = useState(false);
@@ -83,8 +84,17 @@ export function LandingPage({ onStart }: Props) {
             </div>
 
             <div className="text-white/30 text-sm space-y-1">
-                <p>Goes fullscreen • every key makes a colorful burst</p>
-                <p>Press <kbd className="bg-white/10 px-2 py-0.5 rounded font-mono text-white/60">ESC</kbd> to exit</p>
+                {isMobile ? (
+                    <>
+                        <p>every tap makes a colorful burst</p>
+                        <p>Tap <kbd className="bg-white/10 px-2 py-0.5 rounded font-mono text-white/60">START</kbd> then tap anywhere to smash!</p>
+                    </>
+                ) : (
+                    <>
+                        <p>Goes fullscreen • every key makes a colorful burst</p>
+                        <p>Press <kbd className="bg-white/10 px-2 py-0.5 rounded font-mono text-white/60">ESC</kbd> to exit</p>
+                    </>
+                )}
             </div>
         </div>
     );

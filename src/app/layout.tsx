@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Press_Start_2P } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const pixelFont = Press_Start_2P({
@@ -14,6 +15,12 @@ export const metadata: Metadata = {
     description: "Baby keyboard smashing playground — totally safe!",
 };
 
+export const viewport = {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+};
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -22,6 +29,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={pixelFont.variable}>{children}</body>
+            <Analytics />
         </html>
     );
 }

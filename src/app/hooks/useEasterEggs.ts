@@ -528,6 +528,40 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
         } else if (name === 'DOG') {
             playWoof();
             trigger(name, dogSeqRef, 4000);
+        } else if (name === 'AI') {
+            const gen = ++eggGenRef.current;
+            playCoin();
+            onAddKeys(1800);
+            setDiscoveredEggs(prev => new Set(prev).add('AI'));
+            setActiveEgg({ name: 'AI', gen, flood: [{ id: 0, label: 'AI', color: COLORS[Math.floor(Math.random() * COLORS.length)]!, x: 50, y: 50, size: 14, rot: 0 }] });
+            let counter = 1;
+            const floodInterval = setInterval(() => {
+                const batch = Array.from({ length: 100 }, (_, i) => ({
+                    id: counter + i, label: 'AI',
+                    color: COLORS[Math.floor(Math.random() * COLORS.length)]!,
+                    x: Math.random() * 100, y: Math.random() * 100,
+                    size: 1.5 + Math.random() * 10, rot: Math.random() * 360,
+                }));
+                counter += 100;
+                setActiveEgg(prev => prev?.name === 'AI' ? { ...prev, flood: [...(prev.flood ?? []), ...batch] } : prev);
+                if (counter >= 1800) clearInterval(floodInterval);
+            }, 160);
+            setTimeout(() => { clearInterval(floodInterval); if (eggGenRef.current === gen) setActiveEgg(null); }, 1500);
+        } else if (name === 'BORING') {
+            trigger(name, boringSeqRef, 4000, undefined, () => playSnore());
+        } else if (name === 'LOL') {
+            const makeFlood = (count: number, labels: string[]) =>
+                Array.from({ length: count }, (_, i) => ({
+                    id: i, label: labels[i % labels.length]!,
+                    color: COLORS[Math.floor(Math.random() * COLORS.length)]!,
+                    x: Math.random() * 100, y: Math.random() * 100,
+                    size: 3 + Math.random() * 8, rot: Math.random() * 360,
+                }));
+            trigger(name, lolSeqRef, 3000, { flood: makeFlood(180, ['LOL', '😂', 'LOL', '😂', '😂']) }, () => playBlip());
+        } else if (name === 'DUCK') {
+            trigger(name, duckSeqRef, 4500, undefined, () => playQuack());
+        } else if (name === 'TRAIN') {
+            trigger(name, trainSeqRef, 4000, undefined, () => playTrain());
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clearIdleState, onAddKeys]);
