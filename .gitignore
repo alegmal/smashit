@@ -13,6 +13,10 @@ build/
 .env.local
 .env.*.local
 
+# Claude AI
+CLAUDE.md
+.claude/
+
 # misc
 .DS_Store
 *.pem
