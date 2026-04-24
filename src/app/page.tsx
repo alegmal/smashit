@@ -134,7 +134,7 @@ export default function SmashItPage() {
             strokeCountRef, setFloaters, setFrame, impactsRef, orbitPosRef,
             onCornerHit: useCallback((x: number, y: number, color: string) => {
                 setCornerHintSeen(true);
-                handleBonusKeys(1000);
+                if (!isMobileRef.current) handleBonusKeys(1000);
                 playAirHorn();
                 const walls = ['left', 'right', 'top', 'bottom'] as const;
                 for (const wall of walls) {
@@ -209,6 +209,7 @@ export default function SmashItPage() {
         boostHornCountRef.current = 0;
         setMultiplier(1);
         setBoostPopup(null);
+         holdActiveRef.current = false;
         if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
         if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
         if (idleFallTimerRef.current) { clearTimeout(idleFallTimerRef.current); idleFallTimerRef.current = null; }
