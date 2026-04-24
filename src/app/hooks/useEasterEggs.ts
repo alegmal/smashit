@@ -463,6 +463,7 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
         }
 
         return false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clearIdleState]);
 
     const resetEggs = useCallback(() => {
@@ -528,6 +529,7 @@ export function useEasterEggs({ clearIdleState, onAddKeys }: Deps) {
             playWoof();
             trigger(name, dogSeqRef, 4000);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clearIdleState, onAddKeys]);
 
     return {

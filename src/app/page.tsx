@@ -384,6 +384,7 @@ export default function SmashItPage() {
 
         startCritters();
         setIsCapturing(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stopCapture, startPhysicsLoop, clearIdleState, startIdleFlyLoop,
         handleEggInput, recordStroke, checkAndToggleChase,
         idleFallTimerRef, particlesRef, startCritters]);
@@ -396,8 +397,11 @@ export default function SmashItPage() {
             if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
             if (idleRafRef.current !== null) cancelAnimationFrame(idleRafRef.current);
             if (idleFallTimerRef.current) clearTimeout(idleFallTimerRef.current);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             if (critterIntervalRef.current) clearTimeout(critterIntervalRef.current);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             if (autoLangIntervalRef.current) clearInterval(autoLangIntervalRef.current);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             timerMapRef.current.forEach(t => clearTimeout(t));
         };
     }, [rafRef, idleRafRef, idleFallTimerRef, critterIntervalRef]);
