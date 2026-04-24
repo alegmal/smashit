@@ -15,7 +15,7 @@ export function Floaters({ floaters }: Props) {
                         left: `${f.x}vw`,
                         top: `${f.y}vh`,
                         color: f.color,
-                        fontSize: `${1.5 + Math.random() * 2.5}rem`,
+                        fontSize: f.fontSize,
                         textShadow: `0 0 20px ${f.color}88`,
                         transform: "translate(-50%, -50%)",
                     }}

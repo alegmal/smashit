@@ -60,6 +60,7 @@ export function useIdleAnimation({ strokeCountRef, setFloaters, setFrame, impact
                     color: col,
                     x: 10 + Math.random() * 80,
                     y: 10 + Math.random() * 70,
+                    fontSize: `${1.5 + Math.random() * 2.5}rem`,
                 })),
             ].slice(-60));
         };
@@ -149,7 +150,8 @@ export function useIdleAnimation({ strokeCountRef, setFloaters, setFrame, impact
                 s.rot += s.rotV;
             }
 
-            setFrame(f => f + 1);
+            // Only trigger React re-render when idle is actually visible (not during active play)
+            if (idleFlyRef.current !== null) setFrame(f => f + 1);
             idleRafRef.current = requestAnimationFrame(tick);
         };
 

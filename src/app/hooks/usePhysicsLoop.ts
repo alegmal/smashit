@@ -19,6 +19,8 @@ export function usePhysicsLoop(setFrame: Dispatch<SetStateAction<number>>) {
     const startPhysicsLoop = useCallback(() => {
         if (rafRef.current !== null) return; // already running
 
+        let prevCount = particlesRef.current.length;
+
         const tick = () => {
             const now = performance.now();
 
@@ -51,7 +53,13 @@ export function usePhysicsLoop(setFrame: Dispatch<SetStateAction<number>>) {
                     return { ...p, x, y, vx, vy, rot };
                 });
 
-            setFrame(f => f + 1);
+            // Only trigger a React re-render when the particle list grows or shrinks.
+            // Position updates are read directly from particlesRef in Particles component.
+            const after = particlesRef.current.length;
+            if (after !== prevCount) {
+                prevCount = after;
+                setFrame(f => f + 1);
+            }
 
             if (particlesRef.current.length > 0) {
                 rafRef.current = requestAnimationFrame(tick);

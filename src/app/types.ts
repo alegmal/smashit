@@ -6,6 +6,7 @@ export interface FloatingKey {
     color: string;
     x: number; // vw percent
     y: number; // vh percent
+    fontSize: string; // computed once at creation to avoid inline Math.random() on every render
 }
 
 export interface BorderLetter {

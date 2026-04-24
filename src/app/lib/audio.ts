@@ -16,7 +16,7 @@ function getAudioCtx(): AudioContext {
 export function playLetterPop() {
     try {
         const ctx = getAudioCtx();
-        if (ctx.state === "suspended") ctx.resume();
+        if (ctx.state === 'suspended') { void ctx.resume(); }
         const now = ctx.currentTime;
 
         const bufferSize = ctx.sampleRate * 0.3;
@@ -51,7 +51,7 @@ export function playLetterPop() {
 export function playBlip() {
     try {
         const ctx = getAudioCtx();
-        if (ctx.state === "suspended") ctx.resume();
+        if (ctx.state === 'suspended') { void ctx.resume(); }
 
         const freq = NOTES[Math.floor(Math.random() * NOTES.length)]!;
         const now = ctx.currentTime;
@@ -98,7 +98,7 @@ function makeMp3Player(path: string, gainValue: number) {
     return function play() {
         try {
             const ctx = getAudioCtx();
-            if (ctx.state === 'suspended') ctx.resume();
+            if (ctx.state === 'suspended') { void ctx.resume(); }
             loadBuffer(path, ctx).then(decoded => {
                 const src = ctx.createBufferSource();
                 src.buffer = decoded;

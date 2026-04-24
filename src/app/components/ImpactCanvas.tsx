@@ -5,6 +5,7 @@ import type { ImpactEvent } from '../hooks/usePhysicsLoop';
 
 interface Props {
     impactsRef: RefObject<ImpactEvent[]>;
+    enabled?: boolean;
 }
 
 interface Pixel {
@@ -27,13 +28,15 @@ function wallBias(wall: ImpactEvent['wall']): { vxMin: number; vxMax: number; vy
 }
 
 const PIXELS_PER_IMPACT = 10;
+const MAX_PIXELS = 150;
 
-export function ImpactCanvas({ impactsRef }: Props) {
+export function ImpactCanvas({ impactsRef, enabled = true }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const pixelsRef = useRef<Pixel[]>([]);
     const rafRef = useRef<number | null>(null);
 
     useEffect(() => {
+        if (!enabled) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -47,8 +50,10 @@ export function ImpactCanvas({ impactsRef }: Props) {
             // Drain pending impacts → spawn pixels
             const incoming = impactsRef.current.splice(0);
             for (const impact of incoming) {
+                if (pixelsRef.current.length >= MAX_PIXELS) break;
                 const bias = wallBias(impact.wall);
                 for (let i = 0; i < PIXELS_PER_IMPACT; i++) {
+                    if (pixelsRef.current.length >= MAX_PIXELS) break;
                     pixelsRef.current.push({
                         x: impact.x + (Math.random() - 0.5) * 12,
                         y: impact.y + (Math.random() - 0.5) * 12,
@@ -60,6 +65,13 @@ export function ImpactCanvas({ impactsRef }: Props) {
                         life: 350 + Math.random() * 250,
                     });
                 }
+            }
+
+            if (pixelsRef.current.length === 0) {
+                // Nothing to draw — idle until new impacts arrive
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                rafRef.current = null;
+                return;
             }
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -84,12 +96,25 @@ export function ImpactCanvas({ impactsRef }: Props) {
             rafRef.current = requestAnimationFrame(tick);
         };
 
+        // Restart the loop whenever new impacts are pushed
+        const wakeUp = () => {
+            if (rafRef.current === null) {
+                rafRef.current = requestAnimationFrame(tick);
+            }
+        };
+
+        // Poll for incoming impacts using a lightweight interval (avoids modifying impactsRef callers)
+        const wakeInterval = setInterval(() => {
+            if (impactsRef.current.length > 0) wakeUp();
+        }, 16);
+
         rafRef.current = requestAnimationFrame(tick);
         return () => {
             if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+            clearInterval(wakeInterval);
             window.removeEventListener('resize', resize);
         };
-    }, [impactsRef]);
+    }, [impactsRef, enabled]);
 
     return (
         <canvas
