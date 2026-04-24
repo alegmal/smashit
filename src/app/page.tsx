@@ -7,6 +7,7 @@ import { getKeyLabel, LANG_NAMES, randomColor, slotToPosition, transliterateLabe
 import { downloadShareCard } from "./lib/shareCard";
 import { MARGIN, ALL_EGG_NAMES, EGG_DISPLAY_LABELS, ORBIT_HIT_RADIUS } from "./constants";
 import { usePhysicsLoop } from "./hooks/usePhysicsLoop";
+import { useIsMobile } from "./hooks/useIsMobile";
 import { ImpactCanvas } from "./components/ImpactCanvas";
 import { useIdleAnimation } from "./hooks/useIdleAnimation";
 import { useEasterEggs, TOTAL_EGGS } from "./hooks/useEasterEggs";
@@ -93,6 +94,8 @@ export default function SmashItPage() {
     // Mirror activeLang / autoLang to refs so keydown closure can read without stale closure
     useEffect(() => { activeLangRef.current = activeLang; }, [activeLang]);
     useEffect(() => { autoLangRef.current = autoLang; }, [autoLang]);
+
+    const isMobile = useIsMobile();
 
     const { particlesRef, rafRef, impactsRef, startPhysicsLoop } = usePhysicsLoop(setFrame);
     const discoverEggRef = useRef<((name: string) => void) | null>(null);
@@ -223,20 +226,13 @@ export default function SmashItPage() {
         if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); }
     }, [rafRef, idleFallTimerRef, idleRafRef, idleFlyRef, particlesRef, stopCritters, stopAutoLang, resetEggs, resetMilestones, resetChase]);
 
+    const RANDOM_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ    ';
+    const randomLetter = () => RANDOM_LETTERS[Math.floor(Math.random() * RANDOM_LETTERS.length)] ?? 'A';
+
     const startCapture = useCallback(async () => {
-        try { await document.documentElement.requestFullscreen(); } catch { /* fullscreen denied */ }
+        try { await document.documentElement.requestFullscreen(); } catch { /* fullscreen denied — iOS Safari; proceed anyway */ }
 
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") return;
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-
-            // Easter egg input — never blocks typing; handleEggInput returns true but we continue
-            if (e.key.length === 1) {
-                handleEggInput(e.key.toUpperCase());
-            }
-
+        const processKey = (rawLabel: string) => {
             playBlip();
             keystrokeCountRef.current++;
             const newLevel = Math.min(100, Math.floor(keystrokeCountRef.current / 20) + 1);
@@ -262,7 +258,6 @@ export default function SmashItPage() {
                 setMultiplier(1);
             }, 1000);
 
-            const rawLabel = getKeyLabel(e);
             setKeyCounts(prev => ({ ...prev, [rawLabel]: (prev[rawLabel] ?? 0) + 1 }));
             const lang = activeLangRef.current;
             const label = lang ? transliterateLabel(rawLabel, lang) : rawLabel;
@@ -340,6 +335,20 @@ export default function SmashItPage() {
             setFloaters(prev => [...prev, ...newFloaters].slice(-60));
         };
 
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
+            // Easter egg input — never blocks typing; handleEggInput returns true but we continue
+            if (e.key.length === 1) {
+                handleEggInput(e.key.toUpperCase());
+            }
+
+            processKey(getKeyLabel(e));
+        };
+
         const onKeyUp = (e: KeyboardEvent) => {
             if (e.key !== "Escape") {
                 e.preventDefault();
@@ -372,6 +381,16 @@ export default function SmashItPage() {
         };
         document.addEventListener("mousedown", onMouseDown, true);
 
+        const onTouchStart = (e: TouchEvent) => {
+            // Let button taps through so egg buttons remain clickable
+            if ((e.target as Element).closest('button')) return;
+            e.preventDefault();
+            // Each tap gets a random language so characters vary
+            activeLangRef.current = LANG_NAMES[Math.floor(Math.random() * LANG_NAMES.length)] ?? null;
+            processKey(randomLetter());
+        };
+        document.addEventListener("touchstart", onTouchStart, { passive: false });
+
         cleanupRef.current = () => {
             document.removeEventListener("keydown", onKeyDown, true);
             document.removeEventListener("keyup", onKeyUp, true);
@@ -379,6 +398,7 @@ export default function SmashItPage() {
             document.removeEventListener("contextmenu", onContextMenu, true);
             document.removeEventListener("fullscreenchange", onFullscreenChange);
             document.removeEventListener("mousedown", onMouseDown, true);
+            document.removeEventListener("touchstart", onTouchStart);
             window.removeEventListener("beforeunload", onBeforeUnload);
         };
 
@@ -399,7 +419,6 @@ export default function SmashItPage() {
             if (idleFallTimerRef.current) clearTimeout(idleFallTimerRef.current);
             // eslint-disable-next-line react-hooks/exhaustive-deps
             if (critterIntervalRef.current) clearTimeout(critterIntervalRef.current);
-            // eslint-disable-next-line react-hooks/exhaustive-deps
             if (autoLangIntervalRef.current) clearInterval(autoLangIntervalRef.current);
             // eslint-disable-next-line react-hooks/exhaustive-deps
             timerMapRef.current.forEach(t => clearTimeout(t));
@@ -416,7 +435,7 @@ export default function SmashItPage() {
         return () => clearTimeout(timer);
     }, [floaters]);
 
-    if (!isCapturing) return <LandingPage onStart={startCapture} />;
+    if (!isCapturing) return <LandingPage onStart={startCapture} isMobile={isMobile} />;
 
     const orbitLetters = orbitLettersRef.current;
     const orbitPositions = orbitPosRef.current;
@@ -431,10 +450,12 @@ export default function SmashItPage() {
             }}
         >
             <div className="absolute top-3 left-0 right-0 flex flex-col items-center gap-1 select-none">
-                <span className="text-base font-medium tracking-widest uppercase text-white/20">ESC 3 SEC &nbsp;/&nbsp; ALT + TAB to exit</span>
+                <span className="text-base font-medium tracking-widest uppercase text-white/20">
+                    {isMobile ? 'Tap to smash!' : 'ESC 3 SEC \u00a0/\u00a0 ALT + TAB to exit'}
+                </span>
                 <div className="flex items-center gap-2">
-                    {/* Arrow hint pointing at feature counter */}
-                    {discoveredEggs.size === 0 && (
+                    {/* Arrow hint pointing at feature counter — desktop only */}
+                    {!isMobile && discoveredEggs.size === 0 && (
                         <span
                             style={{
                                 fontSize: '1.7rem',
@@ -449,8 +470,8 @@ export default function SmashItPage() {
                         </span>
                     )}
                     <span
-                        className="text-2xl font-bold tracking-wide cursor-default group relative"
-                        style={{ color: discoveredEggs.size === TOTAL_EGGS ? '#2ed573' : 'rgba(255,255,255,0.25)' }}
+                        className="font-bold tracking-wide cursor-default group relative"
+                        style={{ fontSize: isMobile ? '0.75rem' : '1.5rem', color: discoveredEggs.size === TOTAL_EGGS ? '#2ed573' : 'rgba(255,255,255,0.25)' }}
                     >
                         🔍 {discoveredEggs.size}/{TOTAL_EGGS} MAGIC THINGS DISCOVERED
                         {discoveredEggs.size < TOTAL_EGGS && (
@@ -502,7 +523,7 @@ export default function SmashItPage() {
             {!lastKey && (
                 <div className="text-center select-none animate-pulse-big">
                     <div className="text-7xl mb-4">👶</div>
-                    <p className="text-4xl font-bold text-white/60">Smash those keys!</p>
+                    <p className="text-4xl font-bold text-white/60">{isMobile ? 'Start tapping!' : 'Smash those keys!'}</p>
                 </div>
             )}
 
@@ -666,8 +687,8 @@ export default function SmashItPage() {
             <AnimalRain visible={activeEgg?.name === 'BORING'} emojis={['😴']} />
             {/* poop / linkedin shower */}
             <AnimalRain visible={activeEgg?.name === 'POOP' || activeEgg?.name === 'LINKEDIN'} emojis={['💩']} total={250} minSize={2} maxSize={14} />
-            {/* DVD corner hints — shown only in bouncing phase, dismissed on first corner hit */}
-            {idleFlyRef.current?.phase === 'bouncing' && !cornerHintSeen && (
+            {/* DVD corner hints — desktop only */}
+            {!isMobile && idleFlyRef.current?.phase === 'bouncing' && !cornerHintSeen && (
                 <>
                     {/* top-left */}
                     <div className="pointer-events-none fixed select-none flex items-center gap-2" style={{ top: '1rem', left: '1rem', opacity: 0.55, zIndex: 50, animation: 'hint-nudge-tl 1.3s ease-in-out infinite' }}>
@@ -691,14 +712,14 @@ export default function SmashItPage() {
                     </div>
                 </>
             )}
-            <KeyCounter keyCounts={keyCounts} />
+            {!isMobile && <KeyCounter keyCounts={keyCounts} />}
             {/* Bonus point popups — float up above the counter */}
             {bonusPopups.map(popup => (
                 <div
                     key={popup.id}
                     className="pointer-events-none fixed select-none"
                     style={{
-                        bottom: '23rem',
+                        bottom: isMobile ? '55%' : '23rem',
                         left: '1.5rem',
                         zIndex: 91,
                         transformOrigin: 'bottom left',
@@ -708,7 +729,7 @@ export default function SmashItPage() {
                     <span
                         className="font-black"
                         style={{
-                            fontSize: '2rem',
+                            fontSize: isMobile ? '1rem' : '2rem',
                             color: '#ffffff',
                             textShadow: '-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000',
                             whiteSpace: 'nowrap',
@@ -720,7 +741,7 @@ export default function SmashItPage() {
             ))}
             {multiplier > 1 && (
                 <div className="pointer-events-none fixed select-none" style={{ top: '1.5rem', right: '1.5rem', zIndex: 90 }}>
-                    <span className="font-black" style={{ fontSize: '2.2rem', color: '#ffd32a', textShadow: '0 0 20px #ffd32a88' }}>
+                    <span className="font-black" style={{ fontSize: isMobile ? '1.1rem' : '2.2rem', color: '#ffd32a', textShadow: '0 0 20px #ffd32a88' }}>
                         ⚡ x{multiplier}
                     </span>
                 </div>
@@ -735,7 +756,7 @@ export default function SmashItPage() {
                         className="font-black"
                         style={{
                             display: 'block',
-                            fontSize: '3.5rem',
+                            fontSize: isMobile ? '1.8rem' : '3.5rem',
                             color: '#ffd32a',
                             textShadow: '0 0 40px #ffd32a99, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000',
                             whiteSpace: 'nowrap',
@@ -746,7 +767,52 @@ export default function SmashItPage() {
                     </span>
                 </div>
             )}
-            <WpmCounter totalKeys={Math.floor(totalKeys)} activeLang={activeLang} autoLang={autoLang} autoLangCountdown={autoLangCountdown} onToggleAutoLang={onToggleAutoLang} onSelectLang={onSelectLang} onFireEgg={fireEgg} />
+            <WpmCounter totalKeys={Math.floor(totalKeys)} activeLang={activeLang} autoLang={autoLang} autoLangCountdown={autoLangCountdown} onToggleAutoLang={onToggleAutoLang} onSelectLang={onSelectLang} onFireEgg={fireEgg} isMobile={isMobile} />
+            {/* Mobile egg column — right edge, vertical, large */}
+            {isMobile && (
+                <div
+                    className="fixed flex flex-col items-center select-none"
+                    style={{ right: '0.4rem', top: '50%', transform: 'translateY(-50%)', gap: '0.2rem', zIndex: 90 }}
+                >
+                    {[
+                        { name: 'DINO', emoji: '🦕' },
+                        { name: 'SHARK', emoji: '🦈' },
+                        { name: 'UNICORN', emoji: '🦄' },
+                        { name: 'POOP', emoji: '💩' },
+                        { name: 'BABY', emoji: '👶' },
+                        { name: 'DOG', emoji: '🐶' },
+                        { name: 'CAT', emoji: '🐱' },
+                        { name: 'AI', emoji: '🤖' },
+                        { name: 'BORING', emoji: '😴' },
+                        { name: 'LOL', emoji: '😂' },
+                        { name: 'DUCK', emoji: '🦆' },
+                        { name: 'TRAIN', emoji: '🚂' },
+                    ].map(({ name, emoji }) => (
+                        <button
+                            key={name}
+                            onClick={() => fireEgg(name)}
+                            title={name.toLowerCase()}
+                            style={{
+                                background: 'rgba(0,0,0,0.35)',
+                                border: '1px solid rgba(255,255,255,0.12)',
+                                borderRadius: '7px',
+                                padding: '0.2rem',
+                                cursor: 'pointer',
+                                fontSize: '1.7rem',
+                                lineHeight: 1,
+                                width: '2.6rem',
+                                height: '2.6rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                opacity: 0.8,
+                            }}
+                        >
+                            {emoji}
+                        </button>
+                    ))}
+                </div>
+            )}
             <button
                 className="absolute select-none transition-all duration-150 active:scale-95"
                 style={{
