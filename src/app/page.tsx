@@ -134,7 +134,7 @@ export default function SmashItPage() {
             strokeCountRef, setFloaters, setFrame, impactsRef, orbitPosRef,
             onCornerHit: useCallback((x: number, y: number, color: string) => {
                 setCornerHintSeen(true);
-                if (!isMobileRef.current) handleBonusKeys(1000);
+                handleBonusKeys(1000);
                 playAirHorn();
                 const walls = ['left', 'right', 'top', 'bottom'] as const;
                 for (const wall of walls) {
