@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { preloadAllAudio, getAudioCtx } from "../lib/audio";
+import { BUILD_NUMBER } from "../constants";
 
 interface Props {
     onStart: () => void;
@@ -97,6 +98,7 @@ export function LandingPage({ onStart, isMobile = false }: Props) {
                     </>
                 )}
             </div>
+            <span className="fixed bottom-1 left-1 text-white/15 text-xs pointer-events-none select-none">b{BUILD_NUMBER}</span>
         </div>
     );
 }

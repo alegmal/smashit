@@ -1,3 +1,5 @@
+export const BUILD_NUMBER = 12;
+
 // ── Shared constants ───────────────────────────────────────────────────────
 
 export const ALL_EGG_NAMES = [
