@@ -1,67 +1,59 @@
 "use client";
 
-import { Dispatch, SetStateAction, useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import type { Particle } from '../types';
 
 export interface ImpactEvent {
     x: number;
     y: number;
     color: string;
-    // which wall: 'left' | 'right' | 'top' | 'bottom'
     wall: 'left' | 'right' | 'top' | 'bottom';
 }
 
-export function usePhysicsLoop(setFrame: Dispatch<SetStateAction<number>>) {
+export function usePhysicsLoop() {
     const particlesRef = useRef<Particle[]>([]);
     const rafRef = useRef<number | null>(null);
     const impactsRef = useRef<ImpactEvent[]>([]);
 
     const startPhysicsLoop = useCallback(() => {
-        if (rafRef.current !== null) return; // already running
-
-        let prevCount = particlesRef.current.length;
+        if (rafRef.current !== null) return;
 
         const tick = () => {
             const now = performance.now();
+            const particles = particlesRef.current;
+            let write = 0;
 
-            particlesRef.current = particlesRef.current
-                .filter(p => (now - p.born) < p.life)
-                .map(p => {
-                    let { x, y, vx, vy, rot } = p;
-                    x += vx;
-                    y += vy;
-                    vy += 0.35;
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i]!;
+                if ((now - p.born) >= p.life) continue;
 
-                    if (x < 20) {
-                        x = 20; vx = Math.abs(vx) * 0.92;
-                        impactsRef.current.push({ x, y, color: p.color, wall: 'left' });
-                    }
-                    if (x > window.innerWidth - 20) {
-                        x = window.innerWidth - 20; vx = -Math.abs(vx) * 0.92;
-                        impactsRef.current.push({ x, y, color: p.color, wall: 'right' });
-                    }
-                    if (y < 20) {
-                        y = 20; vy = Math.abs(vy) * 0.92;
-                        impactsRef.current.push({ x, y, color: p.color, wall: 'top' });
-                    }
-                    if (y > window.innerHeight - 20) {
-                        y = window.innerHeight - 20; vy = -Math.abs(vy) * 0.92;
-                        impactsRef.current.push({ x, y, color: p.color, wall: 'bottom' });
-                    }
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.35;
 
-                    rot += p.rotV;
-                    return { ...p, x, y, vx, vy, rot };
-                });
+                if (p.x < 20) {
+                    p.x = 20; p.vx = Math.abs(p.vx) * 0.92;
+                    impactsRef.current.push({ x: p.x, y: p.y, color: p.color, wall: 'left' });
+                }
+                if (p.x > window.innerWidth - 20) {
+                    p.x = window.innerWidth - 20; p.vx = -Math.abs(p.vx) * 0.92;
+                    impactsRef.current.push({ x: p.x, y: p.y, color: p.color, wall: 'right' });
+                }
+                if (p.y < 20) {
+                    p.y = 20; p.vy = Math.abs(p.vy) * 0.92;
+                    impactsRef.current.push({ x: p.x, y: p.y, color: p.color, wall: 'top' });
+                }
+                if (p.y > window.innerHeight - 20) {
+                    p.y = window.innerHeight - 20; p.vy = -Math.abs(p.vy) * 0.92;
+                    impactsRef.current.push({ x: p.x, y: p.y, color: p.color, wall: 'bottom' });
+                }
 
-            // Only trigger a React re-render when the particle list grows or shrinks.
-            // Position updates are read directly from particlesRef in Particles component.
-            const after = particlesRef.current.length;
-            if (after !== prevCount) {
-                prevCount = after;
-                setFrame(f => f + 1);
+                p.rot += p.rotV;
+                particles[write++] = p;
             }
+            particles.length = write;
 
-            if (particlesRef.current.length > 0) {
+            if (particles.length > 0) {
                 rafRef.current = requestAnimationFrame(tick);
             } else {
                 rafRef.current = null;
@@ -69,7 +61,7 @@ export function usePhysicsLoop(setFrame: Dispatch<SetStateAction<number>>) {
         };
 
         rafRef.current = requestAnimationFrame(tick);
-    }, [setFrame]);
+    }, []);
 
     return { particlesRef, rafRef, impactsRef, startPhysicsLoop };
 }

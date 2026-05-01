@@ -55,7 +55,7 @@ export default function SmashItPage() {
     const bgColorRef = useRef("#0a0a0f");
     const [totalKeys, setTotalKeys] = useState(0);
     const [borderLetters, setBorderLetters] = useState<BorderLetter[]>([]);
-    const [_frame, setFrame] = useState(0);
+    const [, setFrame] = useState(0);
     const [activeLang, setActiveLang] = useState<string | null>(null);
     const [autoLang, setAutoLang] = useState(false);
     const [autoLangCountdown, setAutoLangCountdown] = useState(5);
@@ -115,12 +115,17 @@ export default function SmashItPage() {
         };
     }, []);
 
-    const { particlesRef, rafRef, impactsRef, startPhysicsLoop } = usePhysicsLoop(setFrame);
+    const { particlesRef, rafRef, impactsRef, startPhysicsLoop } = usePhysicsLoop();
+    const chaseCanvasRef = useRef<HTMLCanvasElement>(null);
     const discoverEggRef = useRef<((name: string) => void) | null>(null);
-    const { orbitLettersRef, orbitPosRef, masterAngleRef, checkAndToggleChase, resetChase } = useChaseMode({
-        setFrame, particlesRef, impactsRef, startPhysicsLoop,
+    const { orbitPosRef, checkAndToggleChase, resetChase } = useChaseMode({
+        canvasRef: chaseCanvasRef, particlesRef, impactsRef, startPhysicsLoop,
         onShake: useCallback(() => {}, []),
     });
+
+    // Input throttling: queue keys, process max 3 per frame on mobile
+    const pendingKeysRef = useRef<string[]>([]);
+    const inputRafRef = useRef<number | null>(null);
 
     const handleBonusKeys = useCallback((n: number) => {
         setTotalKeys(prev => prev + n);
@@ -353,15 +358,27 @@ export default function SmashItPage() {
             }, 5000);
             timerMapRef.current.set(id, timer);
 
-            if (!isMobileRef.current) {
-                const newFloaters = Array.from({ length: 3 }, (_, i) => ({
-                    id: id * 100 + i, label, color,
-                    x: 10 + Math.random() * 80,
-                    y: 10 + Math.random() * 70,
-                    fontSize: `${1.5 + Math.random() * 2.5}rem`,
-                }));
-                setFloaters(prev => [...prev, ...newFloaters].slice(-60));
-            }
+            const floaterCount = isMobileRef.current ? 1 : 3;
+            const floaterCap = isMobileRef.current ? 20 : 60;
+            const newFloaters = Array.from({ length: floaterCount }, (_, i) => ({
+                id: id * 100 + i, label, color,
+                x: 10 + Math.random() * 80,
+                y: 10 + Math.random() * 70,
+                fontSize: `${1.5 + Math.random() * 2.5}rem`,
+            }));
+            setFloaters(prev => [...prev, ...newFloaters].slice(-floaterCap));
+        };
+
+        const queueKey = (rawLabel: string) => {
+            pendingKeysRef.current.push(rawLabel);
+            if (inputRafRef.current !== null) return;
+            inputRafRef.current = requestAnimationFrame(() => {
+                inputRafRef.current = null;
+                const max = isMobileRef.current ? 3 : 10;
+                const keys = pendingKeysRef.current.splice(0, max);
+                pendingKeysRef.current.length = 0;
+                for (const k of keys) processKey(k);
+            });
         };
 
         const startHold = () => {
@@ -370,7 +387,7 @@ export default function SmashItPage() {
             let delay = 300;
             const tick = () => {
                 if (!holdActiveRef.current) return;
-                processKey(randomLetter());
+                queueKey(randomLetter());
                 delay = Math.max(50, delay * 0.85);
                 holdTimerRef.current = setTimeout(tick, delay);
             };
@@ -388,12 +405,11 @@ export default function SmashItPage() {
             e.stopPropagation();
             e.stopImmediatePropagation();
 
-            // Easter egg input — never blocks typing; handleEggInput returns true but we continue
             if (e.key.length === 1) {
                 handleEggInput(e.key.toUpperCase());
             }
 
-            processKey(getKeyLabel(e));
+            queueKey(getKeyLabel(e));
         };
 
         const onKeyUp = (e: KeyboardEvent) => {
@@ -425,7 +441,7 @@ export default function SmashItPage() {
             const id = ++poopCounterRef.current;
             setPoops(prev => [...prev, { id, x: e.clientX, y: e.clientY }]);
             setTimeout(() => setPoops(prev => prev.filter(p => p.id !== id)), 1000);
-            processKey(randomLetter());
+            queueKey(randomLetter());
             startHold();
         };
         const onMouseUp = () => stopHold();
@@ -433,12 +449,10 @@ export default function SmashItPage() {
         document.addEventListener("mouseup", onMouseUp, true);
 
         const onTouchStart = (e: TouchEvent) => {
-            // Let button taps through so egg buttons remain clickable
             if ((e.target as Element).closest('button')) return;
             e.preventDefault();
-            // Each tap gets a random language so characters vary
             activeLangRef.current = LANG_NAMES[Math.floor(Math.random() * LANG_NAMES.length)] ?? null;
-            processKey(randomLetter());
+            queueKey(randomLetter());
             startHold();
         };
         const onTouchEnd = () => stopHold();
@@ -494,10 +508,6 @@ export default function SmashItPage() {
     }, [floaters]);
 
     if (!isCapturing) return <LandingPage onStart={startCapture} isMobile={isMobile} />;
-
-    const orbitLetters = orbitLettersRef.current;
-    const orbitPositions = orbitPosRef.current;
-    const masterAngleDeg = (masterAngleRef.current * 180) / Math.PI;
 
     return (
         <div
@@ -559,7 +569,7 @@ export default function SmashItPage() {
             </div>
 
             <Floaters floaters={floaters} />
-            <Critters critters={critters} />
+            {!isMobile && <Critters critters={critters} />}
 
             {lastKey && idlePhase === null && (
                 <div key={`key-${lastKey.id}`} className="relative z-10 flex flex-col items-center animate-pop-in">
@@ -568,7 +578,7 @@ export default function SmashItPage() {
                         style={{
                             fontSize: lastKey.fontSize,
                             color: lastKey.color,
-                            textShadow: `0 0 60px ${lastKey.color}99, 0 0 120px ${lastKey.color}44`,
+                            ...(!isMobile && { textShadow: `0 0 60px ${lastKey.color}99, 0 0 120px ${lastKey.color}44` }),
                         }}
                     >
                         {lastKey.label}
@@ -585,29 +595,8 @@ export default function SmashItPage() {
                 </div>
             )}
 
-            {/* Orbit letters around cursor */}
-            {!isMobile && orbitLetters.map((letter, i) => {
-                const pos = orbitPositions[i];
-                if (!pos) return null;
-                const angleDeg = (pos.angle * 180) / Math.PI + masterAngleDeg * 0;
-                return (
-                    <span
-                        key={`orbit-${i}-${letter.label}`}
-                        className="pointer-events-none fixed select-none font-black leading-none"
-                        style={{
-                            left: pos.x,
-                            top: pos.y,
-                            fontSize: '3rem',
-                            color: letter.color,
-                            textShadow: `0 0 20px ${letter.color}99`,
-                            transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
-                            zIndex: 70,
-                        }}
-                    >
-                        {letter.label}
-                    </span>
-                );
-            })}
+            {/* Chase mode orbit letters rendered on canvas */}
+            {!isMobile && <canvas ref={chaseCanvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 70 }} />}
 
             {/* Milestone message — twist only for 200+ */}
             {milestoneMessage && (
@@ -643,7 +632,7 @@ export default function SmashItPage() {
             )}
 
             {!isMobile && <BorderLetters letters={borderLetters} />}
-            <Particles particlesRef={particlesRef} _frame={_frame} />
+            <Particles particlesRef={particlesRef} isMobile={isMobile} />
             {!isMobile && <ImpactCanvas impactsRef={impactsRef} />}
 
             {/* Corner hit flash */}

@@ -209,6 +209,20 @@
     100% { transform: translateX(-5vw) scaleX(-1); }
 }
 
+@layer utilities {
+    .gpu-layer {
+        will-change: transform, opacity;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+    }
+}
+
+.animate-float-fade, .animate-pop-in, .animate-baby-fall, .animate-pulse-big {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
 @layer base {
     :root {
         --bg: #0a0a0f;
