@@ -5,7 +5,7 @@ import type { BorderLetter, FloatingKey, LastKeyState } from "./types";
 import { playAirHorn, playAirHornSoft, playBlip, playFart, playLetterPop, playSillySound, suspendAudio, resumeAudio } from "./lib/audio";
 import { getKeyLabel, LANG_NAMES, randomColor, slotToPosition, transliterateLabel } from "./lib/utils";
 import { downloadShareCard } from "./lib/shareCard";
-import { MARGIN, ALL_EGG_NAMES, EGG_DISPLAY_LABELS, ORBIT_HIT_RADIUS } from "./constants";
+import { MARGIN, ALL_EGG_NAMES, EGG_DISPLAY_LABELS, ORBIT_HIT_RADIUS, BUILD_NUMBER } from "./constants";
 import { usePhysicsLoop } from "./hooks/usePhysicsLoop";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { ImpactCanvas } from "./components/ImpactCanvas";
@@ -881,6 +881,7 @@ export default function SmashItPage() {
             >
                 SHARE
             </button>
+            <span className="fixed bottom-1 left-1 text-white/15 text-xs pointer-events-none select-none" style={{ zIndex: 1 }}>b{BUILD_NUMBER}</span>
         </div>
     );
 }
