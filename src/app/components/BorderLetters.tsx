@@ -18,7 +18,7 @@ export function BorderLetters({ letters }: Props) {
                 return (
                     <span
                         key={l.id}
-                        className="pointer-events-none fixed font-black leading-none select-none"
+                        className="pointer-events-none fixed font-black leading-none select-none gpu-layer"
                         style={{
                             left: l.x,
                             top: l.y,

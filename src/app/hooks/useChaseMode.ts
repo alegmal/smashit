@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, RefObject, SetStateAction, useCallback, useRef } from 'react';
+import { RefObject, useCallback, useRef } from 'react';
 import type { Particle } from '../types';
 import type { ImpactEvent } from './usePhysicsLoop';
 import { ORBIT_HIT_RADIUS } from '../constants';
@@ -8,11 +8,11 @@ import { ORBIT_HIT_RADIUS } from '../constants';
 interface OrbitLetter {
     label: string;
     color: string;
-    angleOffset: number; // each letter has its own phase offset
+    angleOffset: number;
 }
 
 interface Deps {
-    setFrame: Dispatch<SetStateAction<number>>;
+    canvasRef: RefObject<HTMLCanvasElement | null>;
     particlesRef: RefObject<Particle[]>;
     impactsRef: RefObject<ImpactEvent[]>;
     startPhysicsLoop: () => void;
@@ -20,37 +20,67 @@ interface Deps {
 }
 
 const ORBIT_RADIUS = 80;
-const ANGLE_SPEED = 0.15; // radians per frame
+const ANGLE_SPEED = 0.15;
 
-// Shake detection: track cursor movement deltas over a short window
 const SHAKE_WINDOW_MS = 5000;
-const SHAKE_DIRECTION_CHANGES = 20; // direction reversals in window → shake
+const SHAKE_DIRECTION_CHANGES = 20;
 
-export function useChaseMode({ setFrame, particlesRef, impactsRef, startPhysicsLoop, onShake }: Deps) {
-    // Array of orbiting letters (grows as player hits same key 10× more)
+export function useChaseMode({ canvasRef, particlesRef, impactsRef, startPhysicsLoop, onShake }: Deps) {
     const orbitLettersRef = useRef<OrbitLetter[]>([]);
     const cursorRef = useRef({ x: typeof window !== 'undefined' ? window.innerWidth / 2 : 400, y: typeof window !== 'undefined' ? window.innerHeight / 2 : 300 });
-    const masterAngleRef = useRef(0); // single master angle; each letter = masterAngle + offset
+    const masterAngleRef = useRef(0);
     const chaseRafRef = useRef<number | null>(null);
     const mouseMoveCleanupRef = useRef<(() => void) | null>(null);
 
-    // Shake detection state
     const shakeHistoryRef = useRef<{ x: number; y: number; t: number }[]>([]);
     const lastDirRef = useRef<{ dx: number; dy: number } | null>(null);
     const dirChangeCountRef = useRef(0);
     const shakeWindowStartRef = useRef(0);
 
-    // Per-letter orbit positions (updated each frame)
     const orbitPosRef = useRef<{ x: number; y: number; angle: number }[]>([]);
 
     const isOrbiting = () => orbitLettersRef.current.length > 0;
+
+    const drawOrbit = useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const positions = orbitPosRef.current;
+        const letters = orbitLettersRef.current;
+        for (let i = 0; i < letters.length; i++) {
+            const l = letters[i]!;
+            const pos = positions[i];
+            if (!pos) continue;
+            ctx.save();
+            ctx.translate(pos.x, pos.y);
+            ctx.font = 'bold 3rem system-ui';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = l.color;
+            ctx.shadowColor = l.color + '99';
+            ctx.shadowBlur = 20;
+            ctx.fillText(l.label, 0, 0);
+            ctx.restore();
+        }
+    }, [canvasRef]);
 
     const stopRaf = useCallback(() => {
         if (chaseRafRef.current !== null) {
             cancelAnimationFrame(chaseRafRef.current);
             chaseRafRef.current = null;
         }
-    }, []);
+        const canvas = canvasRef.current;
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }, [canvasRef]);
 
     const startRaf = useCallback(() => {
         if (chaseRafRef.current !== null) return;
@@ -68,48 +98,46 @@ export function useChaseMode({ setFrame, particlesRef, impactsRef, startPhysicsL
                 };
             });
 
-            // Bounce particles off orbit letters
+            // Bounce particles off orbit letters — mutate in place
             const ops = orbitPosRef.current;
-            if (ops.length > 0 && particlesRef.current.length > 0) {
-                particlesRef.current = particlesRef.current.map(p => {
-                    let { x, y, vx, vy } = p;
-                    for (const op of ops) {
-                        const dx = x - op.x;
-                        const dy = y - op.y;
+            const particles = particlesRef.current;
+            if (ops.length > 0 && particles.length > 0) {
+                for (let pi = 0; pi < particles.length; pi++) {
+                    const p = particles[pi]!;
+                    for (let oi = 0; oi < ops.length; oi++) {
+                        const op = ops[oi]!;
+                        const dx = p.x - op.x;
+                        const dy = p.y - op.y;
                         const distSq = dx * dx + dy * dy;
                         if (distSq < ORBIT_HIT_RADIUS * ORBIT_HIT_RADIUS && distSq > 0) {
                             const dist = Math.sqrt(distSq);
                             const nx = dx / dist;
                             const ny = dy / dist;
-                            // Only react if particle is moving toward the orbit letter
-                            const dot = vx * nx + vy * ny;
+                            const dot = p.vx * nx + p.vy * ny;
                             if (dot < 0) {
-                                vx -= 2 * dot * nx;
-                                vy -= 2 * dot * ny;
-                                vx *= 1.15; // small speed boost on impact
-                                vy *= 1.15;
-                                // Visual spark at collision point
+                                p.vx -= 2 * dot * nx;
+                                p.vy -= 2 * dot * ny;
+                                p.vx *= 1.15;
+                                p.vy *= 1.15;
                                 const wall = nx > 0 ? 'right' : nx < 0 ? 'left' : ny > 0 ? 'bottom' : 'top';
-                                impactsRef.current.push({ x: op.x, y: op.y, color: p.color, wall });
+                                impactsRef.current.push({ x: op.x, y: op.y, color: p.color, wall: wall as 'left' | 'right' | 'top' | 'bottom' });
                             }
-                            // Push particle outside collision zone
-                            x = op.x + nx * (ORBIT_HIT_RADIUS + 1);
-                            y = op.y + ny * (ORBIT_HIT_RADIUS + 1);
+                            p.x = op.x + nx * (ORBIT_HIT_RADIUS + 1);
+                            p.y = op.y + ny * (ORBIT_HIT_RADIUS + 1);
                         }
                     }
-                    return { ...p, x, y, vx, vy };
-                });
+                }
             }
 
-            setFrame(f => f + 1);
+            drawOrbit();
             chaseRafRef.current = requestAnimationFrame(tick);
         };
         chaseRafRef.current = requestAnimationFrame(tick);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [setFrame]);
+    }, [drawOrbit]);
 
     const attachMouseMove = useCallback(() => {
-        if (mouseMoveCleanupRef.current) return; // already attached
+        if (mouseMoveCleanupRef.current) return;
 
         const onMouseMove = (e: MouseEvent) => {
             const now = Date.now();
@@ -119,16 +147,13 @@ export function useChaseMode({ setFrame, particlesRef, impactsRef, startPhysicsL
 
             if (!isOrbiting()) return;
 
-            // Shake detection
             const dx = e.clientX - px;
             const dy = e.clientY - py;
             shakeHistoryRef.current.push({ x: e.clientX, y: e.clientY, t: now });
-            // Prune old entries
             shakeHistoryRef.current = shakeHistoryRef.current.filter(p => now - p.t <= SHAKE_WINDOW_MS);
 
             const last = lastDirRef.current;
             if (last && (dx !== 0 || dy !== 0)) {
-                // Check for sign reversal on either axis
                 const xFlip = (last.dx > 0 && dx < 0) || (last.dx < 0 && dx > 0);
                 const yFlip = (last.dy > 0 && dy < 0) || (last.dy < 0 && dy > 0);
                 if (xFlip || yFlip) {
@@ -139,7 +164,6 @@ export function useChaseMode({ setFrame, particlesRef, impactsRef, startPhysicsL
                     dirChangeCountRef.current++;
                     if (dirChangeCountRef.current >= SHAKE_DIRECTION_CHANGES) {
                         dirChangeCountRef.current = 0;
-                        // Trigger explosion of all orbit letters
                         onShake?.();
                         explodeOrbit();
                     }
@@ -153,16 +177,16 @@ export function useChaseMode({ setFrame, particlesRef, impactsRef, startPhysicsL
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // explodeOrbit: launch all orbit letters as particles and clear orbit
     const explodeOrbit = useCallback(() => {
         const letters = orbitLettersRef.current;
         const positions = orbitPosRef.current;
 
-        letters.forEach((l, i) => {
+        for (let i = 0; i < letters.length; i++) {
+            const l = letters[i]!;
             const pos = positions[i] ?? { x: cursorRef.current.x, y: cursorRef.current.y };
             const speed = 35 + Math.random() * 55;
             const angle = Math.random() * Math.PI * 2;
-            particlesRef.current = [...particlesRef.current, {
+            particlesRef.current.push({
                 id: Date.now() * 1000 + i,
                 label: l.label,
                 color: l.color,
@@ -174,24 +198,21 @@ export function useChaseMode({ setFrame, particlesRef, impactsRef, startPhysicsL
                 size: 3,
                 born: performance.now(),
                 life: 5000,
-            }];
-        });
+            });
+        }
         startPhysicsLoop();
 
         orbitLettersRef.current = [];
         orbitPosRef.current = [];
         stopRaf();
         dirChangeCountRef.current = 0;
-        setFrame(f => f + 1);
-    }, [particlesRef, startPhysicsLoop, stopRaf, setFrame]);
+    }, [particlesRef, startPhysicsLoop, stopRaf]);
 
     const MAX_ORBIT = 5;
 
     const checkAndToggleChase = useCallback((label: string, color: string) => {
-        // Always keep last 5 typed letters orbiting
         const current = orbitLettersRef.current;
         const updated = [...current, { label, color, angleOffset: 0 }].slice(-MAX_ORBIT);
-        // Re-assign evenly spaced offsets
         orbitLettersRef.current = updated.map((l, i) => ({
             ...l,
             angleOffset: (2 * Math.PI * i) / updated.length,
@@ -210,5 +231,5 @@ export function useChaseMode({ setFrame, particlesRef, impactsRef, startPhysicsL
         masterAngleRef.current = 0;
     }, [stopRaf]);
 
-    return { orbitLettersRef, orbitPosRef, masterAngleRef, checkAndToggleChase, resetChase, explodeOrbit };
+    return { orbitPosRef, checkAndToggleChase, resetChase, explodeOrbit };
 }

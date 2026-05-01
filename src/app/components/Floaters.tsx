@@ -10,14 +10,13 @@ export function Floaters({ floaters }: Props) {
             {floaters.map((f) => (
                 <span
                     key={f.id}
-                    className="pointer-events-none absolute select-none animate-float-fade"
+                    className="pointer-events-none absolute select-none animate-float-fade gpu-layer"
                     style={{
                         left: `${f.x}vw`,
                         top: `${f.y}vh`,
                         color: f.color,
                         fontSize: f.fontSize,
                         textShadow: `0 0 20px ${f.color}88`,
-                        transform: "translate(-50%, -50%)",
                     }}
                 >
                     {f.label}
